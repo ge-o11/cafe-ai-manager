@@ -26,7 +26,7 @@ const AdminDashboard: React.FC = () => {
   }
 
   if (!user || !isAdmin) {
-    return <Navigate to="/admin/login" replace />;
+    return <Navigate to="/2002-admin/login" replace />;
   }
 
   return (

@@ -45,7 +45,7 @@ const Hub: React.FC = () => {
     );
   }
 
-  if (!user) return <Navigate to="/admin/login" replace />;
+  if (!user) return <Navigate to="/2002-admin/login" replace />;
 
   // ── Role selection ──────────────────────────────────────────────────────────
   if (view === 'select') {
@@ -175,7 +175,7 @@ const Hub: React.FC = () => {
       {/* Admin cards grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full max-w-2xl">
         <button
-          onClick={() => navigate('/admin/dashboard')}
+          onClick={() => navigate('/2002-admin/dashboard')}
           className="group flex flex-col items-center gap-4 p-6 bg-card border border-border rounded-2xl hover:border-primary hover:shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
         >
           <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">

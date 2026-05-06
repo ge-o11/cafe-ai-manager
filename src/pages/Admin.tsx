@@ -15,10 +15,10 @@ const Admin: React.FC = () => {
   }
 
   if (user && isAdmin) {
-    return <Navigate to="/admin/dashboard" replace />;
+    return <Navigate to="/2002-admin/dashboard" replace />;
   }
 
-  return <Navigate to="/admin/login" replace />;
+  return <Navigate to="/2002-admin/login" replace />;
 };
 
 export default Admin;

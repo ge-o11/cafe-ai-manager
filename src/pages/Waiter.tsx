@@ -275,7 +275,7 @@ const Waiter: React.FC = () => {
     );
   }
 
-  if (!user) return <Navigate to="/admin/login" replace />;
+  if (!user) return <Navigate to="/2002-admin/login" replace />;
 
   // ─── Table Selection ───────────────────────────────────────────────────────
   if (tableNumber === null) {

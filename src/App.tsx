@@ -37,10 +37,10 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Welcome />} />
               <Route path="/menu" element={<Menu />} />
-              <Route path="/admin-root" element={<AdminRoot />} />
-              <Route path="/admin/login" element={<Login />} />
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/admin" element={<Admin />} />
+              <Route path="/2002-admin-root" element={<AdminRoot />} />
+              <Route path="/2002-admin/login" element={<Login />} />
+              <Route path="/2002-admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/2002-admin" element={<Admin />} />
               <Route path="/hub" element={<Hub />} />
               <Route path="/waiter" element={<Waiter />} />
               <Route path="/kitchen" element={<Kitchen />} />

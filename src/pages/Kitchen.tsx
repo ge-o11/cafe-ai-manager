@@ -243,7 +243,7 @@ const Kitchen: React.FC = () => {
     );
   }
 
-  if (!user) return <Navigate to="/admin/login" replace />;
+  if (!user) return <Navigate to="/2002-admin/login" replace />;
 
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">

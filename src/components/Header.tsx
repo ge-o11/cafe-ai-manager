@@ -17,7 +17,7 @@ const Header: React.FC<HeaderProps> = ({ showAdminControls = false }) => {
   const location = useLocation();
   
   // Only show admin controls if explicitly requested or on admin pages
-  const isAdminPage = location.pathname.startsWith('/admin');
+  const isAdminPage = location.pathname.startsWith('/2002-admin');
   const shouldShowAdminControls = showAdminControls || isAdminPage;
 
   return (
@@ -33,7 +33,7 @@ const Header: React.FC<HeaderProps> = ({ showAdminControls = false }) => {
           {/* Only show admin controls on admin pages or when explicitly requested */}
           {shouldShowAdminControls && user && isAdmin && (
             <>
-              <Link to="/admin">
+              <Link to="/2002-admin">
                 <Button variant="ghost" size="sm">
                   <Settings className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
                   {t('nav.dashboard')}

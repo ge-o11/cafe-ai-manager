@@ -17,7 +17,7 @@ const InventoryPage: React.FC = () => {
     );
   }
 
-  if (!user || !isAdmin) return <Navigate to="/admin/login" replace />;
+  if (!user || !isAdmin) return <Navigate to="/2002-admin/login" replace />;
 
   return (
     <div className="min-h-screen bg-background">
