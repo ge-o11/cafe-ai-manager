@@ -1,0 +1,265 @@
+import React, { useState } from 'react';
+import { useNavigate, Navigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useEmployee } from '@/contexts/EmployeeContext';
+import { Button } from '@/components/ui/button';
+import {
+  Loader2, ChefHat, UtensilsCrossed, LayoutDashboard, LogOut,
+  BarChart3, Package, History, Sparkles, Megaphone,
+  ArrowRight, ShieldCheck, Users,
+} from 'lucide-react';
+import EmployeePinModal from '@/components/EmployeePinModal';
+import AdminPinModal from '@/components/AdminPinModal';
+import type { Employee } from '@/hooks/useEmployees';
+import cafeNofLogo from '@/assets/cafe-nof-logo.png';
+
+type View = 'select' | 'employee' | 'admin';
+
+const Hub: React.FC = () => {
+  const { user, isAdmin, isLoading, signOut } = useAuth();
+  const { t } = useLanguage();
+  const navigate = useNavigate();
+  const { setCurrentEmployee } = useEmployee();
+
+  const [view, setView] = useState<View>('select');
+  const [adminPinOpen, setAdminPinOpen] = useState(false);
+  const [empTarget, setEmpTarget] = useState<'/waiter' | '/kitchen' | null>(null);
+
+  const handleEmployeePinSuccess = (employee: Employee) => {
+    setCurrentEmployee(employee);
+    navigate(empTarget!);
+    setEmpTarget(null);
+  };
+
+  const handleAdminPinSuccess = () => {
+    setAdminPinOpen(false);
+    setView('admin');
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-accent" />
+      </div>
+    );
+  }
+
+  if (!user) return <Navigate to="/admin/login" replace />;
+
+  // ── Role selection ──────────────────────────────────────────────────────────
+  if (view === 'select') {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 gap-8">
+        {/* Modals */}
+        {adminPinOpen && (
+          <AdminPinModal
+            onSuccess={handleAdminPinSuccess}
+            onClose={() => setAdminPinOpen(false)}
+          />
+        )}
+
+        {/* Logo + title */}
+        <div className="flex flex-col items-center gap-3">
+          <img src={cafeNofLogo} alt="Cafe Nof" className="h-20 w-auto rounded-xl" />
+          <h1 className="font-display text-2xl font-bold text-foreground">Cafe Nof</h1>
+          <p className="text-sm text-muted-foreground">מי אתה?</p>
+        </div>
+
+        {/* Two big role cards */}
+        <div className="grid grid-cols-2 gap-5 w-full max-w-sm">
+          {/* Employee */}
+          <button
+            onClick={() => setView('employee')}
+            className="group flex flex-col items-center gap-5 py-10 px-4 bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800 rounded-3xl hover:border-amber-400 hover:shadow-lg transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
+          >
+            <div className="w-20 h-20 rounded-2xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center group-hover:bg-amber-200 dark:group-hover:bg-amber-900/60 transition-colors">
+              <Users className="w-10 h-10 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="text-center">
+              <p className="font-bold text-foreground text-xl">עובד</p>
+              <p className="text-xs text-muted-foreground mt-1">מלצר / מטבח</p>
+            </div>
+          </button>
+
+          {/* Manager */}
+          <button
+            onClick={() => isAdmin ? setAdminPinOpen(true) : undefined}
+            className="group flex flex-col items-center gap-5 py-10 px-4 bg-primary/5 dark:bg-primary/10 border-2 border-primary/20 rounded-3xl hover:border-primary/50 hover:shadow-lg transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
+          >
+            <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+              <ShieldCheck className="w-10 h-10 text-primary" />
+            </div>
+            <div className="text-center">
+              <p className="font-bold text-foreground text-xl">מנהל</p>
+              <p className="text-xs text-muted-foreground mt-1">גישה מלאה</p>
+            </div>
+          </button>
+        </div>
+
+        {/* Logout */}
+        <Button variant="ghost" size="sm" className="text-muted-foreground gap-2" onClick={signOut}>
+          <LogOut className="w-4 h-4" />
+          {t('waiter.logout')}
+        </Button>
+      </div>
+    );
+  }
+
+  // ── Employee view ───────────────────────────────────────────────────────────
+  if (view === 'employee') {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 gap-8">
+        {/* Employee PIN modal */}
+        {empTarget && (
+          <EmployeePinModal
+            onSuccess={handleEmployeePinSuccess}
+            onClose={() => setEmpTarget(null)}
+          />
+        )}
+
+        {/* Back + title */}
+        <div className="flex flex-col items-center gap-2">
+          <img src={cafeNofLogo} alt="Cafe Nof" className="h-14 w-auto rounded-xl" />
+          <p className="text-lg font-bold text-foreground">בחר תפקיד</p>
+          <p className="text-xs text-muted-foreground">הזן מספר עובד לאחר הבחירה</p>
+        </div>
+
+        {/* Waiter + Kitchen */}
+        <div className="grid grid-cols-2 gap-5 w-full max-w-sm">
+          <button
+            onClick={() => setEmpTarget('/waiter')}
+            className="group flex flex-col items-center gap-5 py-10 px-4 bg-card border border-border rounded-3xl hover:border-primary hover:shadow-lg transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
+          >
+            <div className="w-20 h-20 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center group-hover:bg-amber-200 transition-colors">
+              <UtensilsCrossed className="w-10 h-10 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="text-center">
+              <p className="font-bold text-foreground text-xl">מלצר</p>
+              <p className="text-xs text-muted-foreground mt-1">קבלת הזמנות</p>
+            </div>
+          </button>
+
+          <button
+            onClick={() => setEmpTarget('/kitchen')}
+            className="group flex flex-col items-center gap-5 py-10 px-4 bg-card border border-border rounded-3xl hover:border-primary hover:shadow-lg transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
+          >
+            <div className="w-20 h-20 rounded-2xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center group-hover:bg-orange-200 transition-colors">
+              <ChefHat className="w-10 h-10 text-orange-600 dark:text-orange-400" />
+            </div>
+            <div className="text-center">
+              <p className="font-bold text-foreground text-xl">מטבח</p>
+              <p className="text-xs text-muted-foreground mt-1">הכנת הזמנות</p>
+            </div>
+          </button>
+        </div>
+
+        {/* Back */}
+        <Button variant="ghost" size="sm" className="text-muted-foreground gap-2" onClick={() => setView('select')}>
+          <ArrowRight className="w-4 h-4" />
+          חזרה
+        </Button>
+      </div>
+    );
+  }
+
+  // ── Admin view ──────────────────────────────────────────────────────────────
+  return (
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 gap-8">
+      {/* Logo + title */}
+      <div className="flex flex-col items-center gap-2">
+        <img src={cafeNofLogo} alt="Cafe Nof" className="h-14 w-auto rounded-xl" />
+        <p className="text-lg font-bold text-foreground">לוח ניהול</p>
+      </div>
+
+      {/* Admin cards grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full max-w-2xl">
+        <button
+          onClick={() => navigate('/admin/dashboard')}
+          className="group flex flex-col items-center gap-4 p-6 bg-card border border-border rounded-2xl hover:border-primary hover:shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+        >
+          <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+            <LayoutDashboard className="w-7 h-7 text-primary" />
+          </div>
+          <div className="text-center">
+            <p className="font-bold text-foreground">ניהול</p>
+            <p className="text-xs text-muted-foreground mt-0.5">דשבורד מנהל</p>
+          </div>
+        </button>
+
+        <button
+          onClick={() => navigate('/reports')}
+          className="group flex flex-col items-center gap-4 p-6 bg-card border border-border rounded-2xl hover:border-primary hover:shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+        >
+          <div className="w-14 h-14 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
+            <BarChart3 className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div className="text-center">
+            <p className="font-bold text-foreground">דוחות</p>
+            <p className="text-xs text-muted-foreground mt-0.5">ניתוח מכירות</p>
+          </div>
+        </button>
+
+        <button
+          onClick={() => navigate('/inventory')}
+          className="group flex flex-col items-center gap-4 p-6 bg-card border border-border rounded-2xl hover:border-primary hover:shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+        >
+          <div className="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center group-hover:bg-amber-200 transition-colors">
+            <Package className="w-7 h-7 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div className="text-center">
+            <p className="font-bold text-foreground">מלאי</p>
+            <p className="text-xs text-muted-foreground mt-0.5">ניהול מוצרים</p>
+          </div>
+        </button>
+
+        <button
+          onClick={() => navigate('/history')}
+          className="group flex flex-col items-center gap-4 p-6 bg-card border border-border rounded-2xl hover:border-primary hover:shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+        >
+          <div className="w-14 h-14 rounded-2xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+            <History className="w-7 h-7 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div className="text-center">
+            <p className="font-bold text-foreground">היסטוריה</p>
+            <p className="text-xs text-muted-foreground mt-0.5">הזמנות לפי שולחן</p>
+          </div>
+        </button>
+
+        <button
+          onClick={() => navigate('/insights')}
+          className="group flex flex-col items-center gap-4 p-6 bg-card border border-border rounded-2xl hover:border-primary hover:shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+        >
+          <div className="w-14 h-14 rounded-2xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+            <Sparkles className="w-7 h-7 text-purple-600 dark:text-purple-400" />
+          </div>
+          <div className="text-center">
+            <p className="font-bold text-foreground">המלצות AI</p>
+            <p className="text-xs text-muted-foreground mt-0.5">ניתוח שבועי</p>
+          </div>
+        </button>
+
+        <button
+          onClick={() => navigate('/promo')}
+          className="group flex flex-col items-center gap-4 p-6 bg-card border border-border rounded-2xl hover:border-primary hover:shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+        >
+          <div className="w-14 h-14 rounded-2xl bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center group-hover:bg-pink-200 transition-colors">
+            <Megaphone className="w-7 h-7 text-pink-600 dark:text-pink-400" />
+          </div>
+          <div className="text-center">
+            <p className="font-bold text-foreground">פרסומות</p>
+            <p className="text-xs text-muted-foreground mt-0.5">באנרים ללקוחות</p>
+          </div>
+        </button>
+      </div>
+
+      {/* Back */}
+      <Button variant="ghost" size="sm" className="text-muted-foreground gap-2" onClick={() => setView('select')}>
+        <ArrowRight className="w-4 h-4" />
+        חזרה
+      </Button>
+    </div>
+  );
+};
+
+export default Hub;

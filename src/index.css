@@ -1,0 +1,259 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Cafe Nof Design System - Warm, inviting cafe aesthetic */
+
+@layer base {
+  :root {
+    /* Core coffee-inspired palette */
+    --background: 30 25% 97%;
+    --foreground: 25 30% 12%;
+
+    --card: 30 20% 99%;
+    --card-foreground: 25 30% 12%;
+
+    --popover: 30 20% 99%;
+    --popover-foreground: 25 30% 12%;
+
+    /* Rich espresso brown primary */
+    --primary: 25 45% 25%;
+    --primary-foreground: 30 25% 97%;
+
+    /* Warm cream secondary */
+    --secondary: 35 30% 92%;
+    --secondary-foreground: 25 45% 25%;
+
+    /* Soft latte muted */
+    --muted: 30 20% 94%;
+    --muted-foreground: 25 15% 45%;
+
+    /* Warm caramel accent */
+    --accent: 32 65% 55%;
+    --accent-foreground: 30 25% 97%;
+
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 30 20% 88%;
+    --input: 30 20% 88%;
+    --ring: 25 45% 25%;
+
+    --radius: 0.75rem;
+
+    /* Custom cafe tokens */
+    --cafe-cream: 35 40% 95%;
+    --cafe-latte: 30 25% 85%;
+    --cafe-caramel: 32 65% 55%;
+    --cafe-mocha: 25 35% 35%;
+    --cafe-espresso: 25 45% 18%;
+    --cafe-gold: 40 75% 55%;
+
+    /* Gradients */
+    --gradient-warm: linear-gradient(135deg, hsl(35 40% 95%) 0%, hsl(30 25% 90%) 100%);
+    --gradient-coffee: linear-gradient(180deg, hsl(25 35% 35%) 0%, hsl(25 45% 18%) 100%);
+    --gradient-hero: linear-gradient(180deg, transparent 0%, hsl(25 30% 12% / 0.7) 100%);
+
+    /* Shadows */
+    --shadow-soft: 0 4px 20px -4px hsl(25 30% 12% / 0.1);
+    --shadow-card: 0 8px 30px -8px hsl(25 30% 12% / 0.15);
+    --shadow-glow: 0 0 40px hsl(32 65% 55% / 0.2);
+
+    /* Sidebar */
+    --sidebar-background: 30 25% 97%;
+    --sidebar-foreground: 25 30% 12%;
+    --sidebar-primary: 25 45% 25%;
+    --sidebar-primary-foreground: 30 25% 97%;
+    --sidebar-accent: 35 30% 92%;
+    --sidebar-accent-foreground: 25 45% 25%;
+    --sidebar-border: 30 20% 88%;
+    --sidebar-ring: 25 45% 25%;
+  }
+
+  .dark {
+    --background: 25 30% 8%;
+    --foreground: 30 20% 95%;
+
+    --card: 25 25% 12%;
+    --card-foreground: 30 20% 95%;
+
+    --popover: 25 25% 12%;
+    --popover-foreground: 30 20% 95%;
+
+    --primary: 32 65% 55%;
+    --primary-foreground: 25 30% 8%;
+
+    --secondary: 25 20% 18%;
+    --secondary-foreground: 30 20% 95%;
+
+    --muted: 25 20% 18%;
+    --muted-foreground: 30 15% 60%;
+
+    --accent: 32 65% 55%;
+    --accent-foreground: 25 30% 8%;
+
+    --destructive: 0 60% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 25 20% 20%;
+    --input: 25 20% 20%;
+    --ring: 32 65% 55%;
+
+    --cafe-cream: 30 15% 20%;
+    --cafe-latte: 25 20% 25%;
+    --cafe-caramel: 32 65% 55%;
+    --cafe-mocha: 25 25% 40%;
+    --cafe-espresso: 25 30% 8%;
+    --cafe-gold: 40 75% 55%;
+
+    --sidebar-background: 25 30% 8%;
+    --sidebar-foreground: 30 20% 95%;
+    --sidebar-primary: 32 65% 55%;
+    --sidebar-primary-foreground: 25 30% 8%;
+    --sidebar-accent: 25 20% 18%;
+    --sidebar-accent-foreground: 30 20% 95%;
+    --sidebar-border: 25 20% 20%;
+    --sidebar-ring: 32 65% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Playfair Display', serif;
+  }
+
+  /* RTL Support */
+  [dir="rtl"] {
+    text-align: right;
+  }
+}
+
+@layer components {
+  .cafe-gradient-warm {
+    background: var(--gradient-warm);
+  }
+
+  .cafe-gradient-coffee {
+    background: var(--gradient-coffee);
+  }
+
+  .cafe-gradient-hero {
+    background: var(--gradient-hero);
+  }
+
+  .cafe-shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+
+  .cafe-shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  .cafe-shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .cafe-text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(var(--cafe-caramel)) 0%, hsl(var(--cafe-gold)) 100%);
+  }
+
+  /* Menu card hover effects */
+  .menu-card {
+    @apply transition-all duration-300 ease-out;
+  }
+
+  .menu-card:hover {
+    @apply -translate-y-1;
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Language switcher button */
+  .lang-button {
+    @apply px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200;
+  }
+
+  .lang-button.active {
+    @apply bg-primary text-primary-foreground;
+  }
+
+  .lang-button:not(.active) {
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/80;
+  }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out forwards;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.3s ease-out forwards;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(500%); }
+  }
+
+  @keyframes thumbGlow {
+    0%, 100% { box-shadow: 0 4px 16px hsl(32 65% 40% / 0.4), 0 0 20px hsl(40 75% 55% / 0.15); }
+    50% { box-shadow: 0 4px 20px hsl(32 65% 40% / 0.5), 0 0 36px hsl(40 75% 55% / 0.3); }
+  }
+
+  @keyframes arrowBounce {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(3px); }
+  }
+
+  @keyframes hintArrow {
+    0%, 100% { transform: translateX(0); opacity: 0.25; }
+    50% { transform: translateX(6px); opacity: 0.5; }
+  }
+}

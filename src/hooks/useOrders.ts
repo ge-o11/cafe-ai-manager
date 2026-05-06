@@ -1,0 +1,275 @@
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+export type PaymentMethod = 'cash' | 'credit' | 'app' | 'other';
+
+export interface Order {
+  id: string;
+  table_number: number;
+  waiter_id: string;
+  status: 'new' | 'in_preparation' | 'served' | 'paid' | 'cancelled';
+  total_price: number;
+  payment_method: PaymentMethod | null;
+  payment_note: string | null;
+  paid_at: string | null;
+  session_note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrderItem {
+  id: string;
+  order_id: string;
+  product_id: string;
+  quantity: number;
+  unit_price: number;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface OrderWithItems extends Order {
+  order_items: (OrderItem & {
+    menu_items: {
+      name_en: string;
+      name_he: string;
+      name_ar: string;
+      name_ru: string;
+      image_url: string | null;
+    };
+  })[];
+}
+
+export const useOrders = (status?: string) => {
+  return useQuery({
+    queryKey: ['orders', status],
+    queryFn: async () => {
+      let query = supabase
+        .from('orders')
+        .select(`
+          *,
+          order_items (
+            *,
+            menu_items (name_en, name_he, name_ar, name_ru, image_url)
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (status) {
+        query = query.eq('status', status as any);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data as OrderWithItems[];
+    },
+    refetchInterval: 10000,
+  });
+};
+
+// Active (non-paid/cancelled) orders — used by Waiter for table status
+export const useActiveOrders = () => {
+  return useQuery({
+    queryKey: ['orders', 'active'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          order_items (
+            *,
+            menu_items (name_en, name_he, name_ar, name_ru, image_url)
+          )
+        `)
+        .in('status', ['new', 'in_preparation', 'served'])
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as OrderWithItems[];
+    },
+    refetchInterval: 15000,
+  });
+};
+
+// Real-time orders — used by Kitchen display with Supabase Realtime subscription
+export const useRealtimeOrders = () => {
+  const queryClient = useQueryClient();
+  const [isConnected, setIsConnected] = useState(false);
+
+  const query = useQuery({
+    queryKey: ['orders', 'kitchen'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          order_items (
+            *,
+            menu_items (name_en, name_he, name_ar, name_ru, image_url)
+          )
+        `)
+        .in('status', ['new', 'in_preparation', 'served'])
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      return data as OrderWithItems[];
+    },
+  });
+
+  useEffect(() => {
+    const channelName = `kitchen-${Math.random().toString(36).slice(2, 9)}`;
+
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['orders'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'order_items' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['orders'] });
+        }
+      )
+      .subscribe((status) => {
+        setIsConnected(status === 'SUBSCRIBED');
+      });
+
+    return () => {
+      setIsConnected(false);
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  return { ...query, isConnected };
+};
+
+export const useTodayOrders = () => {
+  return useQuery({
+    queryKey: ['orders', 'today'],
+    queryFn: async () => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          order_items (
+            *,
+            menu_items (name_en, name_he, name_ar, name_ru, image_url, category_id)
+          )
+        `)
+        .gte('created_at', today.toISOString())
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as (OrderWithItems & {
+        order_items: (OrderItem & {
+          menu_items: {
+            name_en: string; name_he: string; name_ar: string; name_ru: string;
+            image_url: string | null; category_id: string;
+          };
+        })[];
+      })[];
+    },
+    refetchInterval: 30000,
+  });
+};
+
+export const useCreateOrder = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (order: {
+      table_number: number;
+      waiter_id: string;
+      total_price: number;
+      session_note?: string | null;
+      items: { product_id: string; quantity: number; unit_price: number; notes?: string }[];
+    }) => {
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          table_number: order.table_number,
+          waiter_id: order.waiter_id,
+          total_price: order.total_price,
+          session_note: order.session_note || null,
+          status: 'new' as const,
+        })
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      const orderItems = order.items.map((item) => ({
+        order_id: orderData.id,
+        product_id: item.product_id,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        notes: item.notes || null,
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems);
+
+      if (itemsError) throw itemsError;
+
+      return orderData;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      toast.success('Order submitted successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to submit order');
+      console.error(error);
+    },
+  });
+};
+
+export const useUpdateOrderStatus = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      status,
+      payment_method,
+      payment_note,
+    }: {
+      id: string;
+      status: Order['status'];
+      payment_method?: PaymentMethod;
+      payment_note?: string | null;
+    }) => {
+      const updates: Record<string, unknown> = { status };
+      if (payment_method !== undefined) updates.payment_method = payment_method;
+      if (payment_note !== undefined) updates.payment_note = payment_note || null;
+
+      const { data, error } = await supabase
+        .from('orders')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      toast.success('Order status updated');
+    },
+    onError: (error) => {
+      toast.error('Failed to update order status');
+      console.error(error);
+    },
+  });
+};
