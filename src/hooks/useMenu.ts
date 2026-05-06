@@ -104,23 +104,23 @@ export const useUpdateCategory = () => {
 
 export const useDeleteCategory = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('categories')
         .delete()
         .eq('id', id);
-      
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       queryClient.invalidateQueries({ queryKey: ['menu-items'] });
-      toast.success('Category deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      toast.success('הקטגוריה נמחקה בהצלחה');
     },
-    onError: (error) => {
-      toast.error('Failed to delete category');
+    onError: (error: { message?: string }) => {
+      toast.error(`מחיקת הקטגוריה נכשלה: ${error?.message || 'שגיאה לא ידועה'}`);
       console.error(error);
     },
   });
@@ -201,22 +201,22 @@ export const useUpdateMenuItem = () => {
 
 export const useDeleteMenuItem = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('menu_items')
         .delete()
         .eq('id', id);
-      
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['menu-items'] });
-      toast.success('Menu item deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      toast.success('הפריט נמחק בהצלחה');
     },
-    onError: (error) => {
-      toast.error('Failed to delete menu item');
+    onError: (error: { message?: string }) => {
+      toast.error(`מחיקת הפריט נכשלה: ${error?.message || 'שגיאה לא ידועה'}`);
       console.error(error);
     },
   });

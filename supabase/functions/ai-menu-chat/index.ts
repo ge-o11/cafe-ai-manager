@@ -307,23 +307,32 @@ async function executeSimpleCommand(
   supabase: ReturnType<typeof createClient>
 ): Promise<{ response: string; actionsApplied: boolean }> {
   switch (cmd.type) {
-    case "create_category":
-      await supabase.from("categories").insert(cmd.data);
-      break;
-    case "delete_category":
-      await supabase.from("categories").delete().eq("id", cmd.data.id);
-      break;
-    case "create_item":
-      await supabase.from("menu_items").insert(cmd.data);
-      break;
-    case "update_item": {
-      const { id, ...updates } = cmd.data;
-      await supabase.from("menu_items").update(updates).eq("id", id);
+    case "create_category": {
+      const { error } = await supabase.from("categories").insert(cmd.data);
+      if (error) throw error;
       break;
     }
-    case "delete_item":
-      await supabase.from("menu_items").delete().eq("id", cmd.data.id);
+    case "delete_category": {
+      const { error } = await supabase.from("categories").delete().eq("id", cmd.data.id);
+      if (error) throw error;
       break;
+    }
+    case "create_item": {
+      const { error } = await supabase.from("menu_items").insert(cmd.data);
+      if (error) throw error;
+      break;
+    }
+    case "update_item": {
+      const { id, ...updates } = cmd.data;
+      const { error } = await supabase.from("menu_items").update(updates).eq("id", id);
+      if (error) throw error;
+      break;
+    }
+    case "delete_item": {
+      const { error } = await supabase.from("menu_items").delete().eq("id", cmd.data.id);
+      if (error) throw error;
+      break;
+    }
   }
   return { response: cmd.message, actionsApplied: true };
 }
@@ -632,9 +641,12 @@ Be helpful and conversational. Understand Hebrew, English, Arabic, and Russian. 
                   await supabase.from("categories").update(catUpdates).eq("id", catId);
                   break;
                 }
-                case "delete_category":
-                  await supabase.from("categories").delete().eq("id", action.data.id);
+                case "delete_category": {
+                  const { error } = await supabase
+                    .from("categories").delete().eq("id", action.data.id);
+                  if (error) throw error;
                   break;
+                }
                 case "create_item":
                   await supabase.from("menu_items").insert(action.data);
                   break;
@@ -643,9 +655,12 @@ Be helpful and conversational. Understand Hebrew, English, Arabic, and Russian. 
                   await supabase.from("menu_items").update(itemUpdates).eq("id", itemId);
                   break;
                 }
-                case "delete_item":
-                  await supabase.from("menu_items").delete().eq("id", action.data.id);
+                case "delete_item": {
+                  const { error } = await supabase
+                    .from("menu_items").delete().eq("id", action.data.id);
+                  if (error) throw error;
                   break;
+                }
                 case "add_hero_image":
                   await supabase.from("hero_images").insert(action.data);
                   break;
