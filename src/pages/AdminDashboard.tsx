@@ -8,7 +8,6 @@ import AdminMenuItems from '@/components/admin/AdminMenuItems';
 import AdminAIChat from '@/components/admin/AdminAIChat';
 import AdminHeroImages from '@/components/admin/AdminHeroImages';
 import AdminEmployees from '@/components/admin/AdminEmployees';
-import AdminEmployeePerformance from '@/components/admin/AdminEmployeePerformance';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
@@ -42,12 +41,11 @@ const AdminDashboard: React.FC = () => {
         </h1>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 mb-8">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-8">
             <TabsTrigger value="ai">{t('admin.aiChat')}</TabsTrigger>
             <TabsTrigger value="categories">{t('admin.categories')}</TabsTrigger>
             <TabsTrigger value="items">{t('admin.items')}</TabsTrigger>
             <TabsTrigger value="employees">עובדים</TabsTrigger>
-            <TabsTrigger value="performance">ביצועים</TabsTrigger>
           </TabsList>
 
           <TabsContent value="ai">
@@ -67,10 +65,6 @@ const AdminDashboard: React.FC = () => {
 
           <TabsContent value="employees">
             <AdminEmployees />
-          </TabsContent>
-
-          <TabsContent value="performance">
-            <AdminEmployeePerformance />
           </TabsContent>
         </Tabs>
       </main>

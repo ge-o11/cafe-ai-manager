@@ -264,7 +264,7 @@ const Hub: React.FC = () => {
         </button>
 
         <button
-          onClick={() => navigate('/2002-admin/dashboard', { state: { tab: 'performance' } })}
+          onClick={() => navigate('/performance')}
           className="group flex flex-col items-center gap-4 p-6 bg-card border border-border rounded-2xl hover:border-primary hover:shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
         >
           <div className="w-14 h-14 rounded-2xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
