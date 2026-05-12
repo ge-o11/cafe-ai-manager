@@ -5,11 +5,11 @@ import { Shift } from '@/hooks/useShifts';
 
 function elapsedLabel(clockIn: string): string {
   const ms = Date.now() - new Date(clockIn).getTime();
-  const totalMin = Math.floor(ms / 60_000);
-  const h = Math.floor(totalMin / 60);
-  const m = totalMin % 60;
-  if (h === 0) return `${m}ד׳`;
-  return `${h}:${String(m).padStart(2, '0')}ש׳`;
+  const totalSec = Math.floor(ms / 1_000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
 interface Props {
@@ -21,7 +21,7 @@ const ShiftStatusChip: React.FC<Props> = ({ employee, shift }) => {
   const [, setTick] = useState(0);
 
   useEffect(() => {
-    const id = setInterval(() => setTick(n => n + 1), 30_000);
+    const id = setInterval(() => setTick(n => n + 1), 1_000);
     return () => clearInterval(id);
   }, []);
 
