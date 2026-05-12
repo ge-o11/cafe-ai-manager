@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import {
   Loader2, ChefHat, UtensilsCrossed, LayoutDashboard, LogOut,
   BarChart3, History, Sparkles, Megaphone,
-  ArrowRight, ShieldCheck, Users, TrendingUp,
+  ArrowRight, ShieldCheck, Users, TrendingUp, Timer,
 } from 'lucide-react';
 import EmployeePinModal from '@/components/EmployeePinModal';
 import AdminPinModal from '@/components/AdminPinModal';
@@ -132,6 +132,20 @@ const Hub: React.FC = () => {
           <p className="text-lg font-bold text-foreground">בחר תפקיד</p>
           <p className="text-xs text-muted-foreground">הזן מספר עובד לאחר הבחירה</p>
         </div>
+
+        {/* Punch clock shortcut */}
+        <button
+          onClick={() => navigate('/punch')}
+          className="flex items-center gap-3 px-5 py-3 bg-primary/10 border border-primary/20 rounded-2xl hover:bg-primary/20 transition-all w-full max-w-sm"
+        >
+          <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
+            <Timer className="w-5 h-5 text-primary" />
+          </div>
+          <div className="text-right flex-1">
+            <p className="font-bold text-foreground text-sm">שעון נוכחות</p>
+            <p className="text-xs text-muted-foreground">כניסה / יציאה ממשמרת</p>
+          </div>
+        </button>
 
         {/* Waiter + Kitchen */}
         <div className="grid grid-cols-2 gap-5 w-full max-w-sm">

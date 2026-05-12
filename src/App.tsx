@@ -21,6 +21,7 @@ import InventoryPage from "./pages/InventoryPage";
 import HistoryPage from "./pages/HistoryPage";
 import AIInsightsPage from "./pages/AIInsightsPage";
 import PromoPage from "./pages/PromoPage";
+import PunchClock from "./pages/PunchClock";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ const App = () => (
               <Route path="/insights" element={<AIInsightsPage />} />
               <Route path="/promo" element={<PromoPage />} />
               <Route path="/employees" element={<EmployeesPage />} />
+              <Route path="/punch" element={<PunchClock />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
