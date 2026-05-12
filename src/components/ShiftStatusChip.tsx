@@ -27,15 +27,8 @@ const ShiftStatusChip: React.FC<Props> = ({ employee, shift }) => {
 
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700">
-      {/* PIN avatar */}
-      <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-800 flex items-center justify-center shrink-0">
-        <span className="font-mono text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
-          {employee.employee_number}
-        </span>
-      </div>
-
       {/* Name */}
-      <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-200 max-w-[80px] truncate">
+      <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-200 max-w-[90px] truncate">
         {employee.name}
       </span>
 
