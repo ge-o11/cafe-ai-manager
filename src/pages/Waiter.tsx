@@ -287,6 +287,46 @@ const Waiter: React.FC = () => {
 
   // ─── Table Selection ───────────────────────────────────────────────────────
   if (tableNumber === null) {
+    const renderTable = (num: number) => {
+      const status = getTableStatus(num, activeOrders);
+      const tblOrders = activeOrders.filter(o => o.table_number === num);
+      const tblTotal = tblOrders.reduce((sum, o) => sum + o.total_price, 0);
+      const hasServed = tblOrders.some(o => o.status === 'served');
+      const tblColor =
+        status === 'free'           ? 'bg-stone-50 border-2 border-stone-300 text-stone-600 hover:border-stone-400' :
+        status === 'new'            ? 'bg-amber-400 border-2 border-amber-500 text-white' :
+        status === 'in_preparation' ? 'bg-orange-500 border-2 border-orange-600 text-white' :
+                                      'bg-emerald-500 border-2 border-emerald-600 text-white';
+      const tblShadow =
+        status === 'free'           ? 'shadow-md shadow-stone-300/60' :
+        status === 'new'            ? 'shadow-lg shadow-amber-400/50' :
+        status === 'in_preparation' ? 'shadow-lg shadow-orange-500/50' :
+                                      'shadow-lg shadow-emerald-500/50';
+      return (
+        <button
+          key={num}
+          onClick={() => handleSelectTable(num)}
+          className={`relative flex flex-col items-center justify-center w-20 h-[52px] rounded-full transition-all duration-200 hover:scale-110 active:scale-95 ${tblColor} ${tblShadow}`}
+        >
+          <span className="absolute -top-2 left-1/2 -translate-x-1/2 w-5 h-1.5 rounded-full bg-stone-400/40" />
+          <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-5 h-1.5 rounded-full bg-stone-400/40" />
+          <span className="text-base font-black leading-none">{num}</span>
+          {tblTotal > 0 && (
+            <span className="text-[9px] font-bold opacity-90 leading-none mt-0.5">
+              ₪{tblTotal % 1 === 0 ? tblTotal : tblTotal.toFixed(0)}
+            </span>
+          )}
+          {tblOrders.length > 0 && !hasServed && (
+            <span className="absolute -top-2 -right-1 w-4 h-4 rounded-full bg-white text-[9px] font-black text-stone-800 flex items-center justify-center border border-stone-200 shadow-sm">
+              {tblOrders.length}
+            </span>
+          )}
+          {hasServed && (
+            <span className="absolute -top-2 -right-1 w-4 h-4 rounded-full bg-emerald-400 animate-pulse border-2 border-white" />
+          )}
+        </button>
+      );
+    };
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative">
         {/* Top-right controls */}
@@ -335,85 +375,66 @@ const Waiter: React.FC = () => {
           ))}
         </div>
 
-        {/* Floor plan */}
-        <div
-          className="w-full max-w-2xl rounded-3xl border border-stone-300 dark:border-stone-700 shadow-2xl overflow-hidden"
-        >
-          {/* Floor surface */}
+        {/* Floor plan — zone layout matching real restaurant */}
+        <div className="w-full max-w-2xl rounded-3xl border border-stone-300 dark:border-stone-700 shadow-2xl overflow-hidden">
           <div
-            className="p-6 sm:p-8 min-h-[280px] flex items-center justify-center"
-            style={{
-              background: 'radial-gradient(ellipse at center, #f5f0e8 0%, #ede5d8 100%)',
-            }}
+            className="p-4 sm:p-5"
+            style={{ background: 'radial-gradient(ellipse at center, #f5f0e8 0%, #ede5d8 100%)' }}
           >
-            <div className="flex flex-wrap gap-5 justify-center">
-              {Array.from({ length: tableCount }, (_, i) => i + 1).map((num) => {
-                const status = getTableStatus(num, activeOrders);
-                const tableOrders = activeOrders.filter(o => o.table_number === num);
-                const tableTotal = tableOrders.reduce((sum, o) => sum + o.total_price, 0);
-                const hasServed = tableOrders.some(o => o.status === 'served');
+            <div className="flex flex-col gap-3">
 
-                const tableColor =
-                  status === 'free'           ? 'bg-stone-50 border-2 border-stone-300 text-stone-600 hover:border-stone-400' :
-                  status === 'new'            ? 'bg-amber-400 border-2 border-amber-500 text-white' :
-                  status === 'in_preparation' ? 'bg-orange-500 border-2 border-orange-600 text-white' :
-                                                'bg-emerald-500 border-2 border-emerald-600 text-white';
+              {/* Outdoor upper terrace — 5 tables */}
+              <div className="rounded-2xl border border-green-300/50 bg-green-50/50 p-3">
+                <p className="text-[10px] font-bold text-green-800/70 uppercase tracking-widest mb-3 text-center">
+                  🌿 חוץ – מרפסת עליונה
+                </p>
+                <div className="flex gap-4 justify-center flex-wrap">
+                  {[1,2,3,4,5].map(n => renderTable(n))}
+                </div>
+              </div>
 
-                const shadow =
-                  status === 'free'           ? 'shadow-md shadow-stone-300/60' :
-                  status === 'new'            ? 'shadow-lg shadow-amber-400/50' :
-                  status === 'in_preparation' ? 'shadow-lg shadow-orange-500/50' :
-                                                'shadow-lg shadow-emerald-500/50';
+              {/* Lower terrace — 4 tables */}
+              <div className="rounded-2xl border border-teal-300/40 bg-teal-50/40 p-3">
+                <p className="text-[10px] font-bold text-teal-800/70 uppercase tracking-widest mb-3 text-center">
+                  🌿 מרפסת תחתית
+                </p>
+                <div className="flex gap-4 justify-center flex-wrap">
+                  {[6,7,8,9].map(n => renderTable(n))}
+                </div>
+              </div>
 
-                return (
-                  <button
-                    key={num}
-                    onClick={() => handleSelectTable(num)}
-                    className={`
-                      relative flex flex-col items-center justify-center
-                      w-20 h-[52px] rounded-full
-                      transition-all duration-200 hover:scale-110 active:scale-95
-                      ${tableColor} ${shadow}
-                    `}
-                  >
-                    {/* Chair indicators top */}
-                    <span className="absolute -top-2 left-1/2 -translate-x-1/2 w-5 h-1.5 rounded-full bg-stone-400/40" />
-                    {/* Chair indicators bottom */}
-                    <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-5 h-1.5 rounded-full bg-stone-400/40" />
+              {/* Bottom row: Entrance + 2nd floor */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-2xl border border-amber-300/40 bg-amber-50/40 p-3">
+                  <p className="text-[10px] font-bold text-amber-800/70 uppercase tracking-widest mb-3 text-center">
+                    🚪 כניסה
+                  </p>
+                  <div className="flex gap-3 justify-center flex-wrap">
+                    {[10,11].map(n => renderTable(n))}
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-blue-300/40 bg-blue-50/30 p-3">
+                  <p className="text-[10px] font-bold text-blue-800/70 uppercase tracking-widest mb-3 text-center">
+                    🏠 קומה 2
+                  </p>
+                  <div className="flex gap-3 justify-center flex-wrap">
+                    {[12,13,14,15].map(n => renderTable(n))}
+                  </div>
+                </div>
+              </div>
 
-                    <span className="text-base font-black leading-none">{num}</span>
-                    {tableTotal > 0 && (
-                      <span className="text-[9px] font-bold opacity-90 leading-none mt-0.5">
-                        ₪{tableTotal % 1 === 0 ? tableTotal : tableTotal.toFixed(0)}
-                      </span>
-                    )}
-
-                    {/* Order count badge */}
-                    {tableOrders.length > 0 && (
-                      <span className="absolute -top-2 -right-1 w-4 h-4 rounded-full bg-white text-[9px] font-black text-stone-800 flex items-center justify-center border border-stone-200 shadow-sm">
-                        {tableOrders.length}
-                      </span>
-                    )}
-
-                    {/* Payment ready pulse */}
-                    {hasServed && (
-                      <span className="absolute -top-2 -right-1 w-4 h-4 rounded-full bg-emerald-400 animate-pulse border-2 border-white" />
-                    )}
-                  </button>
-                );
-              })}
             </div>
           </div>
 
-          {/* Floor footer bar */}
+          {/* Footer bar */}
           <div className="bg-stone-800 dark:bg-stone-950 px-5 py-2.5 flex items-center justify-between">
             <span className="text-stone-400 text-[11px]">
               {activeOrders.length > 0
-                ? `${activeOrders.filter(o => o.table_number !== null).map(o => o.table_number).filter((v, i, a) => a.indexOf(v) === i).length} שולחנות פעילים`
+                ? `${new Set(activeOrders.filter(o => o.table_number !== null).map(o => o.table_number)).size} שולחנות פעילים`
                 : 'כל השולחנות פנויים'}
             </span>
-            <span className="text-stone-400 text-[11px] font-mono">
-              {tableCount} שולחנות
+            <span className="text-stone-400 text-[11px]">
+              חוץ · מרפסת · כניסה · קומה 2
             </span>
           </div>
         </div>
