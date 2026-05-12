@@ -383,43 +383,43 @@ const Waiter: React.FC = () => {
           >
             <div className="flex flex-col gap-3">
 
-              {/* Outdoor upper terrace — 5 tables */}
-              <div className="rounded-2xl border border-green-300/50 bg-green-50/50 p-3">
-                <p className="text-[10px] font-bold text-green-800/70 uppercase tracking-widest mb-3 text-center">
-                  🌿 חוץ – מרפסת עליונה
-                </p>
-                <div className="flex gap-4 justify-center flex-wrap">
-                  {[1,2,3,4,5].map(n => renderTable(n))}
-                </div>
-              </div>
-
-              {/* Lower terrace — 4 tables */}
-              <div className="rounded-2xl border border-teal-300/40 bg-teal-50/40 p-3">
-                <p className="text-[10px] font-bold text-teal-800/70 uppercase tracking-widest mb-3 text-center">
-                  🌿 מרפסת תחתית
-                </p>
-                <div className="flex gap-4 justify-center flex-wrap">
-                  {[6,7,8,9].map(n => renderTable(n))}
-                </div>
-              </div>
-
-              {/* Bottom row: Entrance + 2nd floor */}
+              {/* Top row: Upper terrace + Lower terrace side by side */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-2xl border border-amber-300/40 bg-amber-50/40 p-3">
-                  <p className="text-[10px] font-bold text-amber-800/70 uppercase tracking-widest mb-3 text-center">
-                    🚪 כניסה
+                <div className="rounded-2xl border border-green-300/50 bg-green-50/50 p-3">
+                  <p className="text-[10px] font-bold text-green-800/70 uppercase tracking-widest mb-3 text-center">
+                    🌿 חוץ – מרפסת עליונה
                   </p>
                   <div className="flex gap-3 justify-center flex-wrap">
-                    {[10,11].map(n => renderTable(n))}
+                    {[1,2,3,4,5].map(n => renderTable(n))}
                   </div>
                 </div>
-                <div className="rounded-2xl border border-blue-300/40 bg-blue-50/30 p-3">
-                  <p className="text-[10px] font-bold text-blue-800/70 uppercase tracking-widest mb-3 text-center">
-                    🏠 קומה 2
+                <div className="rounded-2xl border border-teal-300/40 bg-teal-50/40 p-3">
+                  <p className="text-[10px] font-bold text-teal-800/70 uppercase tracking-widest mb-3 text-center">
+                    🌿 מרפסת תחתית
                   </p>
                   <div className="flex gap-3 justify-center flex-wrap">
-                    {[12,13,14,15].map(n => renderTable(n))}
+                    {[6,7,8,9].map(n => renderTable(n))}
                   </div>
+                </div>
+              </div>
+
+              {/* Entrance — full width */}
+              <div className="rounded-2xl border border-amber-300/40 bg-amber-50/40 p-3">
+                <p className="text-[10px] font-bold text-amber-800/70 uppercase tracking-widest mb-3 text-center">
+                  🚪 כניסה (קומה 1)
+                </p>
+                <div className="flex gap-4 justify-center flex-wrap">
+                  {[10,11].map(n => renderTable(n))}
+                </div>
+              </div>
+
+              {/* 2nd floor — full width */}
+              <div className="rounded-2xl border border-blue-300/40 bg-blue-50/30 p-3">
+                <p className="text-[10px] font-bold text-blue-800/70 uppercase tracking-widest mb-3 text-center">
+                  🏠 קומה 2
+                </p>
+                <div className="flex gap-4 justify-center flex-wrap">
+                  {[12,13,14,15].map(n => renderTable(n))}
                 </div>
               </div>
 
