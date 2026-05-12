@@ -6,6 +6,7 @@ export interface Employee {
   name: string;
   employee_number: string;
   is_active: boolean;
+  hourly_rate: number | null;
   created_at: string;
 }
 
