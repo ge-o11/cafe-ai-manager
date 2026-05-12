@@ -12,7 +12,7 @@ import {
 import EmployeePinModal from '@/components/EmployeePinModal';
 import AdminPinModal from '@/components/AdminPinModal';
 import type { Employee } from '@/hooks/useEmployees';
-import { useClockIn, useActiveShifts } from '@/hooks/useShifts';
+import { useActiveShifts } from '@/hooks/useShifts';
 import cafeNofLogo from '@/assets/cafe-nof-logo.png';
 
 type View = 'select' | 'employee' | 'admin';
@@ -26,13 +26,10 @@ const Hub: React.FC = () => {
   const [view, setView] = useState<View>('select');
   const [adminPinOpen, setAdminPinOpen] = useState(false);
   const [empTarget, setEmpTarget] = useState<'/waiter' | '/kitchen' | null>(null);
-  const clockIn = useClockIn();
   const { data: activeShifts = [] } = useActiveShifts();
 
   const handleEmployeePinSuccess = (employee: Employee) => {
     setCurrentEmployee(employee);
-    clockIn.mutate(employee.id);
-    // Navigate based on role if set, otherwise use chosen target
     const dest = employee.role === 'waiter' ? '/waiter'
                : employee.role === 'kitchen' ? '/kitchen'
                : empTarget!;
