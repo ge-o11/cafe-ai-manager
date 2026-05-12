@@ -5,6 +5,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useRealtimeOrders, useUpdateOrderStatus, OrderWithItems } from '@/hooks/useOrders';
 import { useEmployee } from '@/contexts/EmployeeContext';
 import { useActiveShift, useClockOut } from '@/hooks/useShifts';
+import ShiftStatusChip from '@/components/ShiftStatusChip';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -297,6 +298,9 @@ const Kitchen: React.FC = () => {
 
           {/* Right: clock + connection + logout */}
           <div className="flex items-center gap-4">
+            {currentEmployee && (
+              <ShiftStatusChip employee={currentEmployee} shift={activeShift} />
+            )}
             <LiveClock />
 
             <div className="flex items-center gap-1.5 text-xs font-semibold">

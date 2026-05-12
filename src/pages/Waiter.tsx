@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useEmployee } from '@/contexts/EmployeeContext';
 import { useActiveShift, useClockOut } from '@/hooks/useShifts';
+import ShiftStatusChip from '@/components/ShiftStatusChip';
 import { useCategories, useMenuItems } from '@/hooks/useMenu';
 import { useCreateOrder, useActiveOrders, useUpdateOrderStatus, OrderWithItems, PaymentMethod } from '@/hooks/useOrders';
 import { useSettings, useUpdateSetting } from '@/hooks/useSettings';
@@ -288,7 +289,10 @@ const Waiter: React.FC = () => {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative">
         {/* Top-right controls */}
-        <div className="absolute top-4 right-4 flex items-center gap-1">
+        <div className="absolute top-4 right-4 flex items-center gap-2">
+          {currentEmployee && (
+            <ShiftStatusChip employee={currentEmployee} shift={activeShift} />
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -698,6 +702,9 @@ const Waiter: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-1.5">
+                {currentEmployee && (
+                  <ShiftStatusChip employee={currentEmployee} shift={activeShift} />
+                )}
                 {/* Mobile cart button */}
                 <Button
                   variant="outline"
