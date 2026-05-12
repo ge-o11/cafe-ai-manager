@@ -86,6 +86,34 @@ export function useAllShifts(period: PeriodFilter) {
   });
 }
 
+export interface ActiveShiftWithEmployee {
+  id: string;
+  clock_in: string;
+  employees: {
+    id: string;
+    name: string;
+    employee_number: string;
+    role: 'waiter' | 'kitchen' | null;
+  };
+}
+
+/** All currently open shifts (no clock_out) with employee info — for Hub display */
+export function useActiveShifts() {
+  return useQuery<ActiveShiftWithEmployee[]>({
+    queryKey: ['shifts', 'active-all'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('shifts')
+        .select('id, clock_in, employees(id, name, employee_number, role)')
+        .is('clock_out', null)
+        .order('clock_in', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as ActiveShiftWithEmployee[];
+    },
+    refetchInterval: 15_000,
+  });
+}
+
 export function useClockIn() {
   const qc = useQueryClient();
   return useMutation({

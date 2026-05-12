@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Trash2, Loader2, UserPlus, Users, ShieldCheck, ShieldOff, Pencil, Check, X } from 'lucide-react';
+import { Trash2, Loader2, UserPlus, Users, ShieldCheck, ShieldOff, Pencil, Check, X, UtensilsCrossed, ChefHat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
-import { useEmployees } from '@/hooks/useEmployees';
+import { useEmployees, EmployeeRole } from '@/hooks/useEmployees';
 
 const AdminEmployees: React.FC = () => {
   const queryClient = useQueryClient();
@@ -16,6 +16,7 @@ const AdminEmployees: React.FC = () => {
   const [name, setName] = useState('');
   const [number, setNumber] = useState('');
   const [hourlyRate, setHourlyRate] = useState('');
+  const [role, setRole] = useState<EmployeeRole>(null);
   const [nameError, setNameError] = useState('');
   const [numberError, setNumberError] = useState('');
 
@@ -32,6 +33,7 @@ const AdminEmployees: React.FC = () => {
         name: name.trim(),
         employee_number: number.trim(),
         hourly_rate: rate,
+        role: role,
       });
       if (error) throw error;
     },
@@ -40,6 +42,7 @@ const AdminEmployees: React.FC = () => {
       setName('');
       setNumber('');
       setHourlyRate('');
+      setRole(null);
       toast.success('העובד נוסף בהצלחה');
     },
     onError: (err: Error) => {
@@ -58,6 +61,15 @@ const AdminEmployees: React.FC = () => {
     },
     onSuccess: () => { invalidate(); toast.success('הסטטוס עודכן'); },
     onError: () => toast.error('שגיאה'),
+  });
+
+  const updateRoleMutation = useMutation({
+    mutationFn: async ({ id, role }: { id: string; role: EmployeeRole }) => {
+      const { error } = await supabase.from('employees').update({ role }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => { invalidate(); toast.success('התפקיד עודכן'); },
+    onError: () => toast.error('שגיאה בעדכון תפקיד'),
   });
 
   const updateRateMutation = useMutation({
@@ -118,6 +130,30 @@ const AdminEmployees: React.FC = () => {
       {/* Add form */}
       <div className="p-4 bg-muted/40 rounded-xl border border-border/60 space-y-3">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">הוסף עובד חדש</p>
+        {/* Role selector */}
+        <div className="flex gap-2">
+          {([
+            { value: 'waiter', label: 'מלצר', icon: <UtensilsCrossed className="w-4 h-4" /> },
+            { value: 'kitchen', label: 'מטבח', icon: <ChefHat className="w-4 h-4" /> },
+          ] as { value: EmployeeRole; label: string; icon: React.ReactNode }[]).map(opt => (
+            <button
+              key={String(opt.value)}
+              type="button"
+              onClick={() => setRole(role === opt.value ? null : opt.value)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl border-2 text-sm font-semibold transition-all ${
+                role === opt.value
+                  ? opt.value === 'waiter'
+                    ? 'border-amber-400 bg-amber-50 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300'
+                    : 'border-orange-400 bg-orange-50 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300'
+                  : 'border-border bg-background text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              {opt.icon}
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px_120px_auto] gap-3 items-end">
           <div className="space-y-1">
             <Label htmlFor="emp-name" className="text-xs">שם עובד</Label>
@@ -188,10 +224,30 @@ const AdminEmployees: React.FC = () => {
                 </span>
               </div>
 
-              {/* Name + status */}
+              {/* Name + status + role */}
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-foreground text-sm">{emp.name}</p>
-                <p className="text-xs text-muted-foreground">{emp.is_active ? 'פעיל' : 'מושבת'}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-xs text-muted-foreground">{emp.is_active ? 'פעיל' : 'מושבת'}</p>
+                  <div className="flex gap-1">
+                    {(['waiter', 'kitchen'] as EmployeeRole[]).map(r => (
+                      <button
+                        key={String(r)}
+                        onClick={() => updateRoleMutation.mutate({ id: emp.id, role: emp.role === r ? null : r })}
+                        className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold transition-all ${
+                          emp.role === r
+                            ? r === 'waiter'
+                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
+                              : 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300'
+                            : 'bg-muted text-muted-foreground hover:bg-secondary'
+                        }`}
+                      >
+                        {r === 'waiter' ? <UtensilsCrossed className="w-2.5 h-2.5" /> : <ChefHat className="w-2.5 h-2.5" />}
+                        {r === 'waiter' ? 'מלצר' : 'מטבח'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               {/* Hourly rate inline edit */}

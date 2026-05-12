@@ -12,7 +12,7 @@ import {
 import EmployeePinModal from '@/components/EmployeePinModal';
 import AdminPinModal from '@/components/AdminPinModal';
 import type { Employee } from '@/hooks/useEmployees';
-import { useClockIn } from '@/hooks/useShifts';
+import { useClockIn, useActiveShifts } from '@/hooks/useShifts';
 import cafeNofLogo from '@/assets/cafe-nof-logo.png';
 
 type View = 'select' | 'employee' | 'admin';
@@ -27,11 +27,16 @@ const Hub: React.FC = () => {
   const [adminPinOpen, setAdminPinOpen] = useState(false);
   const [empTarget, setEmpTarget] = useState<'/waiter' | '/kitchen' | null>(null);
   const clockIn = useClockIn();
+  const { data: activeShifts = [] } = useActiveShifts();
 
   const handleEmployeePinSuccess = (employee: Employee) => {
     setCurrentEmployee(employee);
     clockIn.mutate(employee.id);
-    navigate(empTarget!);
+    // Navigate based on role if set, otherwise use chosen target
+    const dest = employee.role === 'waiter' ? '/waiter'
+               : employee.role === 'kitchen' ? '/kitchen'
+               : empTarget!;
+    navigate(dest);
     setEmpTarget(null);
   };
 
@@ -112,7 +117,7 @@ const Hub: React.FC = () => {
   // ── Employee view ───────────────────────────────────────────────────────────
   if (view === 'employee') {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 gap-8">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 gap-6">
         {/* Employee PIN modal */}
         {empTarget && (
           <EmployeePinModal
@@ -156,6 +161,48 @@ const Hub: React.FC = () => {
             </div>
           </button>
         </div>
+
+        {/* Connected employees panel */}
+        {activeShifts.length > 0 && (
+          <div className="w-full max-w-sm bg-card border border-border rounded-2xl p-4 space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+              מחובר עכשיו ({activeShifts.length})
+            </p>
+            {activeShifts.map(s => {
+              const emp = s.employees;
+              const isWaiter = emp.role === 'waiter';
+              const isKitchen = emp.role === 'kitchen';
+              const ms = Date.now() - new Date(s.clock_in).getTime();
+              const totalMin = Math.floor(ms / 60_000);
+              const h = Math.floor(totalMin / 60);
+              const m = totalMin % 60;
+              const elapsed = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+              return (
+                <div key={s.id} className="flex items-center gap-3 px-3 py-2 rounded-xl bg-muted/50">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                    isWaiter ? 'bg-amber-100 dark:bg-amber-900/30' :
+                    isKitchen ? 'bg-orange-100 dark:bg-orange-900/30' :
+                    'bg-muted'
+                  }`}>
+                    {isWaiter ? <UtensilsCrossed className="w-4 h-4 text-amber-600 dark:text-amber-400" /> :
+                     isKitchen ? <ChefHat className="w-4 h-4 text-orange-600 dark:text-orange-400" /> :
+                     <Users className="w-4 h-4 text-muted-foreground" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">{emp.name}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {isWaiter ? 'מלצר' : isKitchen ? 'מטבח' : 'לא הוגדר'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs font-mono text-muted-foreground shrink-0">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    {elapsed}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Back */}
         <Button variant="ghost" size="sm" className="text-muted-foreground gap-2" onClick={() => setView('select')}>

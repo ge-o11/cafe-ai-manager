@@ -1,12 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+export type EmployeeRole = 'waiter' | 'kitchen' | null;
+
 export interface Employee {
   id: string;
   name: string;
   employee_number: string;
   is_active: boolean;
   hourly_rate: number | null;
+  role: EmployeeRole;
   created_at: string;
 }
 
