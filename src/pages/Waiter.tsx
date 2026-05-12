@@ -314,64 +314,108 @@ const Waiter: React.FC = () => {
           </Button>
         </div>
 
-        {/* Logo */}
-        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6">
-          <UtensilsCrossed className="w-8 h-8 text-primary" />
-        </div>
-        <h1 className="font-display text-3xl font-bold text-foreground mb-1">Cafe Nof</h1>
-        <p className="text-muted-foreground mb-4 text-sm">{t('waiter.selectTable')}</p>
-
-        {/* Status legend */}
-        <div className="flex flex-wrap items-center justify-center gap-3 mb-6 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full border border-border bg-background inline-block" />
-            {t('waiter.free')}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" />
-            {t('waiter.active')}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-orange-400 inline-block" />
-            {t('waiter.preparing')}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-400 inline-block" />
-            {t('waiter.waitingPayment')}
-          </span>
+        {/* Header */}
+        <div className="flex flex-col items-center mb-5">
+          <h1 className="font-display text-2xl font-bold text-foreground mb-0.5">Cafe Nof</h1>
+          <p className="text-muted-foreground text-xs">{t('waiter.selectTable')}</p>
         </div>
 
-        {/* Table grid */}
-        <div className="grid grid-cols-5 gap-2.5 max-w-sm w-full">
-          {Array.from({ length: tableCount }, (_, i) => i + 1).map((num) => {
-            const status = getTableStatus(num, activeOrders);
-            const tableOrders = activeOrders.filter(o => o.table_number === num);
-            const tableTotal = tableOrders.reduce((sum, o) => sum + o.total_price, 0);
-            const hasServed = tableOrders.some(o => o.status === 'served');
-            return (
-              <Button
-                key={num}
-                variant="outline"
-                className={`h-16 flex flex-col items-center justify-center gap-0.5 rounded-xl transition-all duration-200 hover:scale-105 relative ${STATUS_STYLES[status]}`}
-                onClick={() => handleSelectTable(num)}
-              >
-                <span className="text-lg font-bold leading-none">{num}</span>
-                {tableTotal > 0 && (
-                  <span className="text-[10px] font-semibold opacity-90 leading-none">
-                    ₪{tableTotal % 1 === 0 ? tableTotal : tableTotal.toFixed(1)}
-                  </span>
-                )}
-                {tableOrders.length > 0 && (
-                  <span className={`absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full ${STATUS_DOT[status]} flex items-center justify-center text-[9px] font-bold text-white border border-background`}>
-                    {tableOrders.length}
-                  </span>
-                )}
-                {hasServed && (
-                  <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-emerald-400 border border-background" title={t('waiter.waitingPayment')} />
-                )}
-              </Button>
-            );
-          })}
+        {/* Legend */}
+        <div className="flex flex-wrap items-center justify-center gap-3 mb-5 text-[11px] text-muted-foreground">
+          {[
+            { color: 'bg-stone-200 dark:bg-stone-600 border border-stone-300', label: t('waiter.free') },
+            { color: 'bg-amber-400', label: t('waiter.active') },
+            { color: 'bg-orange-500', label: t('waiter.preparing') },
+            { color: 'bg-emerald-500', label: t('waiter.waitingPayment') },
+          ].map(({ color, label }) => (
+            <span key={label} className="flex items-center gap-1.5">
+              <span className={`w-3 h-2 rounded-full ${color} inline-block`} />
+              {label}
+            </span>
+          ))}
+        </div>
+
+        {/* Floor plan */}
+        <div
+          className="w-full max-w-2xl rounded-3xl border border-stone-300 dark:border-stone-700 shadow-2xl overflow-hidden"
+        >
+          {/* Floor surface */}
+          <div
+            className="p-6 sm:p-8 min-h-[280px] flex items-center justify-center"
+            style={{
+              background: 'radial-gradient(ellipse at center, #f5f0e8 0%, #ede5d8 100%)',
+            }}
+          >
+            <div className="flex flex-wrap gap-5 justify-center">
+              {Array.from({ length: tableCount }, (_, i) => i + 1).map((num) => {
+                const status = getTableStatus(num, activeOrders);
+                const tableOrders = activeOrders.filter(o => o.table_number === num);
+                const tableTotal = tableOrders.reduce((sum, o) => sum + o.total_price, 0);
+                const hasServed = tableOrders.some(o => o.status === 'served');
+
+                const tableColor =
+                  status === 'free'           ? 'bg-stone-50 border-2 border-stone-300 text-stone-600 hover:border-stone-400' :
+                  status === 'new'            ? 'bg-amber-400 border-2 border-amber-500 text-white' :
+                  status === 'in_preparation' ? 'bg-orange-500 border-2 border-orange-600 text-white' :
+                                                'bg-emerald-500 border-2 border-emerald-600 text-white';
+
+                const shadow =
+                  status === 'free'           ? 'shadow-md shadow-stone-300/60' :
+                  status === 'new'            ? 'shadow-lg shadow-amber-400/50' :
+                  status === 'in_preparation' ? 'shadow-lg shadow-orange-500/50' :
+                                                'shadow-lg shadow-emerald-500/50';
+
+                return (
+                  <button
+                    key={num}
+                    onClick={() => handleSelectTable(num)}
+                    className={`
+                      relative flex flex-col items-center justify-center
+                      w-20 h-[52px] rounded-full
+                      transition-all duration-200 hover:scale-110 active:scale-95
+                      ${tableColor} ${shadow}
+                    `}
+                  >
+                    {/* Chair indicators top */}
+                    <span className="absolute -top-2 left-1/2 -translate-x-1/2 w-5 h-1.5 rounded-full bg-stone-400/40" />
+                    {/* Chair indicators bottom */}
+                    <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-5 h-1.5 rounded-full bg-stone-400/40" />
+
+                    <span className="text-base font-black leading-none">{num}</span>
+                    {tableTotal > 0 && (
+                      <span className="text-[9px] font-bold opacity-90 leading-none mt-0.5">
+                        ₪{tableTotal % 1 === 0 ? tableTotal : tableTotal.toFixed(0)}
+                      </span>
+                    )}
+
+                    {/* Order count badge */}
+                    {tableOrders.length > 0 && (
+                      <span className="absolute -top-2 -right-1 w-4 h-4 rounded-full bg-white text-[9px] font-black text-stone-800 flex items-center justify-center border border-stone-200 shadow-sm">
+                        {tableOrders.length}
+                      </span>
+                    )}
+
+                    {/* Payment ready pulse */}
+                    {hasServed && (
+                      <span className="absolute -top-2 -right-1 w-4 h-4 rounded-full bg-emerald-400 animate-pulse border-2 border-white" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Floor footer bar */}
+          <div className="bg-stone-800 dark:bg-stone-950 px-5 py-2.5 flex items-center justify-between">
+            <span className="text-stone-400 text-[11px]">
+              {activeOrders.length > 0
+                ? `${activeOrders.filter(o => o.table_number !== null).map(o => o.table_number).filter((v, i, a) => a.indexOf(v) === i).length} שולחנות פעילים`
+                : 'כל השולחנות פנויים'}
+            </span>
+            <span className="text-stone-400 text-[11px] font-mono">
+              {tableCount} שולחנות
+            </span>
+          </div>
         </div>
 
         {/* Table Preview Sheet */}
