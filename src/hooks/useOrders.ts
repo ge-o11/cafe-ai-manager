@@ -189,6 +189,7 @@ export const useCreateOrder = () => {
     mutationFn: async (order: {
       table_number: number;
       waiter_id: string;
+      employee_id?: string | null;
       total_price: number;
       session_note?: string | null;
       items: { product_id: string; quantity: number; unit_price: number; notes?: string }[];
@@ -198,6 +199,7 @@ export const useCreateOrder = () => {
         .insert({
           table_number: order.table_number,
           waiter_id: order.waiter_id,
+          employee_id: order.employee_id || null,
           total_price: order.total_price,
           session_note: order.session_note || null,
           status: 'new' as const,

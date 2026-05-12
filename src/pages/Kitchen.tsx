@@ -3,6 +3,8 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useRealtimeOrders, useUpdateOrderStatus, OrderWithItems } from '@/hooks/useOrders';
+import { useEmployee } from '@/contexts/EmployeeContext';
+import { useActiveShift, useClockOut } from '@/hooks/useShifts';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -197,6 +199,9 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
 const Kitchen: React.FC = () => {
   const { user, isLoading: authLoading, signOut } = useAuth();
   const { language, t } = useLanguage();
+  const { currentEmployee } = useEmployee();
+  const { data: activeShift } = useActiveShift(currentEmployee?.id);
+  const clockOut = useClockOut();
   const { data: orders = [], isLoading, isConnected } = useRealtimeOrders();
   const updateStatus = useUpdateOrderStatus();
 
@@ -308,15 +313,31 @@ const Kitchen: React.FC = () => {
               )}
             </div>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground"
-              onClick={signOut}
-              title={t('waiter.logout')}
-            >
-              <LogOut className="w-4 h-4" />
-            </Button>
+            {activeShift ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1.5 text-xs"
+                disabled={clockOut.isPending}
+                onClick={async () => {
+                  await clockOut.mutateAsync(activeShift.id);
+                  signOut();
+                }}
+              >
+                <LogOut className="w-4 h-4" />
+                סיום משמרת
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground"
+                onClick={signOut}
+                title={t('waiter.logout')}
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         </div>
       </header>

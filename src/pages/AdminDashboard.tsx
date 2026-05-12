@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
@@ -8,6 +8,7 @@ import AdminMenuItems from '@/components/admin/AdminMenuItems';
 import AdminAIChat from '@/components/admin/AdminAIChat';
 import AdminHeroImages from '@/components/admin/AdminHeroImages';
 import AdminEmployees from '@/components/admin/AdminEmployees';
+import AdminEmployeePerformance from '@/components/admin/AdminEmployeePerformance';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
@@ -15,7 +16,9 @@ import { Loader2 } from 'lucide-react';
 const AdminDashboard: React.FC = () => {
   const { t } = useLanguage();
   const { user, isAdmin, isLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState('ai');
+  const location = useLocation();
+  const initialTab = (location.state as { tab?: string } | null)?.tab ?? 'ai';
+  const [activeTab, setActiveTab] = useState(initialTab);
 
   if (isLoading) {
     return (
@@ -39,11 +42,12 @@ const AdminDashboard: React.FC = () => {
         </h1>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-8">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 mb-8">
             <TabsTrigger value="ai">{t('admin.aiChat')}</TabsTrigger>
             <TabsTrigger value="categories">{t('admin.categories')}</TabsTrigger>
             <TabsTrigger value="items">{t('admin.items')}</TabsTrigger>
             <TabsTrigger value="employees">עובדים</TabsTrigger>
+            <TabsTrigger value="performance">ביצועים</TabsTrigger>
           </TabsList>
 
           <TabsContent value="ai">
@@ -63,6 +67,10 @@ const AdminDashboard: React.FC = () => {
 
           <TabsContent value="employees">
             <AdminEmployees />
+          </TabsContent>
+
+          <TabsContent value="performance">
+            <AdminEmployeePerformance />
           </TabsContent>
         </Tabs>
       </main>

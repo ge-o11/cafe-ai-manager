@@ -6,12 +6,13 @@ import { useEmployee } from '@/contexts/EmployeeContext';
 import { Button } from '@/components/ui/button';
 import {
   Loader2, ChefHat, UtensilsCrossed, LayoutDashboard, LogOut,
-  BarChart3, Package, History, Sparkles, Megaphone,
-  ArrowRight, ShieldCheck, Users,
+  BarChart3, History, Sparkles, Megaphone,
+  ArrowRight, ShieldCheck, Users, TrendingUp,
 } from 'lucide-react';
 import EmployeePinModal from '@/components/EmployeePinModal';
 import AdminPinModal from '@/components/AdminPinModal';
 import type { Employee } from '@/hooks/useEmployees';
+import { useClockIn } from '@/hooks/useShifts';
 import cafeNofLogo from '@/assets/cafe-nof-logo.png';
 
 type View = 'select' | 'employee' | 'admin';
@@ -25,9 +26,11 @@ const Hub: React.FC = () => {
   const [view, setView] = useState<View>('select');
   const [adminPinOpen, setAdminPinOpen] = useState(false);
   const [empTarget, setEmpTarget] = useState<'/waiter' | '/kitchen' | null>(null);
+  const clockIn = useClockIn();
 
   const handleEmployeePinSuccess = (employee: Employee) => {
     setCurrentEmployee(employee);
+    clockIn.mutate(employee.id);
     navigate(empTarget!);
     setEmpTarget(null);
   };
@@ -201,15 +204,15 @@ const Hub: React.FC = () => {
         </button>
 
         <button
-          onClick={() => navigate('/inventory')}
+          onClick={() => navigate('/2002-admin/dashboard', { state: { tab: 'performance' } })}
           className="group flex flex-col items-center gap-4 p-6 bg-card border border-border rounded-2xl hover:border-primary hover:shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
         >
-          <div className="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center group-hover:bg-amber-200 transition-colors">
-            <Package className="w-7 h-7 text-amber-600 dark:text-amber-400" />
+          <div className="w-14 h-14 rounded-2xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+            <TrendingUp className="w-7 h-7 text-blue-600 dark:text-blue-400" />
           </div>
           <div className="text-center">
-            <p className="font-bold text-foreground">מלאי</p>
-            <p className="text-xs text-muted-foreground mt-0.5">ניהול מוצרים</p>
+            <p className="font-bold text-foreground">ביצועי עובדים</p>
+            <p className="text-xs text-muted-foreground mt-0.5">מכירות ושעות</p>
           </div>
         </button>
 

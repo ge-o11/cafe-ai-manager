@@ -2,6 +2,8 @@ import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useEmployee } from '@/contexts/EmployeeContext';
+import { useActiveShift, useClockOut } from '@/hooks/useShifts';
 import { useCategories, useMenuItems } from '@/hooks/useMenu';
 import { useCreateOrder, useActiveOrders, useUpdateOrderStatus, OrderWithItems, PaymentMethod } from '@/hooks/useOrders';
 import { useSettings, useUpdateSetting } from '@/hooks/useSettings';
@@ -56,6 +58,9 @@ function getTableStatus(tableNum: number, activeOrders: OrderWithItems[]): Table
 const Waiter: React.FC = () => {
   const { user, isLoading: authLoading, signOut } = useAuth();
   const { language, t } = useLanguage();
+  const { currentEmployee } = useEmployee();
+  const { data: activeShift } = useActiveShift(currentEmployee?.id);
+  const clockOut = useClockOut();
   const { data: categories, isLoading: catLoading } = useCategories();
   const { data: menuItems, isLoading: itemsLoading } = useMenuItems();
   const { data: activeOrders = [] } = useActiveOrders();
@@ -192,6 +197,7 @@ const Waiter: React.FC = () => {
       await createOrder.mutateAsync({
         table_number: tableNumber,
         waiter_id: user.id,
+        employee_id: currentEmployee?.id ?? null,
         total_price: totalPrice,
         session_note: sessionNote || null,
         items: cart.map(({ product_id, quantity, unit_price, notes }) => ({
@@ -292,15 +298,32 @@ const Waiter: React.FC = () => {
           >
             <Settings className="w-4 h-4" />
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground gap-1.5 text-xs"
-            onClick={signOut}
-          >
-            <LogOut className="w-4 h-4" />
-            {t('waiter.logout')}
-          </Button>
+          {activeShift && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1.5 text-xs"
+              disabled={clockOut.isPending}
+              onClick={async () => {
+                await clockOut.mutateAsync(activeShift.id);
+                signOut();
+              }}
+            >
+              <LogOut className="w-4 h-4" />
+              סיום משמרת
+            </Button>
+          )}
+          {!activeShift && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground gap-1.5 text-xs"
+              onClick={signOut}
+            >
+              <LogOut className="w-4 h-4" />
+              {t('waiter.logout')}
+            </Button>
+          )}
         </div>
 
         {/* Logo */}
