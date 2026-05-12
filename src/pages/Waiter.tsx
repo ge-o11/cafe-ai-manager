@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useEmployee } from '@/contexts/EmployeeContext';
@@ -58,6 +58,7 @@ function getTableStatus(tableNum: number, activeOrders: OrderWithItems[]): Table
 
 const Waiter: React.FC = () => {
   const { user, isLoading: authLoading, signOut } = useAuth();
+  const navigate = useNavigate();
   const { language, t } = useLanguage();
   const { currentEmployee } = useEmployee();
   const { data: activeShift } = useActiveShift(currentEmployee?.id);
@@ -302,32 +303,15 @@ const Waiter: React.FC = () => {
           >
             <Settings className="w-4 h-4" />
           </Button>
-          {activeShift && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1.5 text-xs"
-              disabled={clockOut.isPending}
-              onClick={async () => {
-                await clockOut.mutateAsync(activeShift.id);
-                signOut();
-              }}
-            >
-              <LogOut className="w-4 h-4" />
-              סיום משמרת
-            </Button>
-          )}
-          {!activeShift && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground gap-1.5 text-xs"
-              onClick={signOut}
-            >
-              <LogOut className="w-4 h-4" />
-              {t('waiter.logout')}
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground gap-1.5 text-xs"
+            onClick={() => navigate('/hub')}
+          >
+            <ChevronLeft className="w-4 h-4" />
+            חזרה
+          </Button>
         </div>
 
         {/* Logo */}
@@ -720,12 +704,12 @@ const Waiter: React.FC = () => {
                   )}
                 </Button>
 
-                {/* Logout */}
+                {/* Back to hub */}
                 <Button
                   variant="ghost" size="icon"
                   className="h-8 w-8 text-muted-foreground"
-                  onClick={signOut}
-                  title={t('waiter.logout')}
+                  onClick={() => navigate('/hub')}
+                  title="חזרה"
                 >
                   <LogOut className="w-4 h-4" />
                 </Button>
