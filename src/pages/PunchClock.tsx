@@ -45,11 +45,15 @@ const PunchClock: React.FC = () => {
     setStage({ type: 'idle' });
   }, []);
 
-  // Auto-reset after showing result
+  // Auto-handler after showing result
   useEffect(() => {
     if (stage.type === 'success_in' || stage.type === 'success_out' || stage.type === 'error' || stage.type === 'clocked_in') {
       if (autoResetTimer) clearTimeout(autoResetTimer);
-      if (stage.type === 'success_in' || stage.type === 'success_out' || stage.type === 'error') {
+      if (stage.type === 'success_in' || stage.type === 'success_out') {
+        // After successful clock-in/out → go to role selection screen
+        const t = setTimeout(() => navigate('/hub', { state: { view: 'employee' } }), 5000);
+        setAutoResetTimer(t);
+      } else if (stage.type === 'error') {
         const t = setTimeout(reset, 5000);
         setAutoResetTimer(t);
       }
@@ -202,7 +206,7 @@ const PunchClock: React.FC = () => {
               עבור לדף {stage.employee.role === 'waiter' ? 'מלצר' : 'מטבח'}
             </Button>
           )}
-          <p className="text-[11px] text-muted-foreground mt-1">חוזר למסך בעוד 5 שניות</p>
+          <p className="text-[11px] text-muted-foreground mt-1">עובר לבחירת תפקיד בעוד 5 שניות</p>
         </div>
       )}
 
@@ -216,7 +220,7 @@ const PunchClock: React.FC = () => {
             <Clock className="w-4 h-4" />
             סה"כ {stage.hours} שעות במשמרת
           </p>
-          <p className="text-[11px] text-muted-foreground mt-1">חוזר למסך בעוד 5 שניות</p>
+          <p className="text-[11px] text-muted-foreground mt-1">עובר לבחירת תפקיד בעוד 5 שניות</p>
         </div>
       )}
 

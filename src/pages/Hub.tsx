@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useEmployee } from '@/contexts/EmployeeContext';
@@ -21,9 +21,11 @@ const Hub: React.FC = () => {
   const { user, isAdmin, isLoading, signOut } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const location = useLocation();
   const { setCurrentEmployee } = useEmployee();
 
-  const [view, setView] = useState<View>('select');
+  const initialView: View = location.state?.view === 'employee' ? 'employee' : 'select';
+  const [view, setView] = useState<View>(initialView);
   const [adminPinOpen, setAdminPinOpen] = useState(false);
   const [empTarget, setEmpTarget] = useState<'/waiter' | '/kitchen' | null>(null);
   const { data: activeShifts = [] } = useActiveShifts();
