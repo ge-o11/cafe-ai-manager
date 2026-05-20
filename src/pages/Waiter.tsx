@@ -6,7 +6,9 @@ import { useEmployee } from '@/contexts/EmployeeContext';
 import { useActiveShift, useClockOut } from '@/hooks/useShifts';
 import ShiftStatusChip from '@/components/ShiftStatusChip';
 import { useCategories, useMenuItems } from '@/hooks/useMenu';
-import { useCreateOrder, useActiveOrders, useUpdateOrderStatus, OrderWithItems, PaymentMethod } from '@/hooks/useOrders';
+import { useCreateOrder, useActiveOrders, useUpdateOrderStatus, useTransferTable, OrderWithItems, PaymentMethod, DiscountType } from '@/hooks/useOrders';
+import { useTableStatuses, useSetTableCleaning } from '@/hooks/useTables';
+import BillSplitSheet from '@/components/waiter/BillSplitSheet';
 import { useSettings, useUpdateSetting } from '@/hooks/useSettings';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +21,7 @@ import {
   Loader2, Search, Plus, Minus, Trash2, ShoppingCart, Send, X,
   UtensilsCrossed, Clock, StickyNote, ChevronLeft, LogOut, Settings,
   ClipboardList, CheckCircle2, Banknote, CreditCard, Smartphone, MoreHorizontal, Printer,
+  ArrowRightLeft, Scissors, Percent, Tag, Sparkles,
 } from 'lucide-react';
 import { printReceipt, openKitchenWindow, writeKitchenTicket, printDraftBon } from '@/lib/printReceipt';
 import { toast } from 'sonner';
@@ -69,6 +72,9 @@ const Waiter: React.FC = () => {
   const { data: activeOrders = [] } = useActiveOrders();
   const createOrder = useCreateOrder();
   const updateOrderStatus = useUpdateOrderStatus();
+  const transferTable = useTransferTable();
+  const { data: tableStatuses = [] } = useTableStatuses();
+  const setTableCleaning = useSetTableCleaning();
   const { data: settings } = useSettings();
   const updateSetting = useUpdateSetting();
 
@@ -92,6 +98,16 @@ const Waiter: React.FC = () => {
   const [now, setNow] = useState(() => new Date());
   const [editingItem, setEditingItem] = useState<NonNullable<typeof menuItems>[number] | null>(null);
   const [editQty, setEditQty] = useState(1);
+  // Discount state (used in payment dialog)
+  const [showDiscountForm, setShowDiscountForm] = useState(false);
+  const [discountType, setDiscountType] = useState<DiscountType>('percent');
+  const [discountValue, setDiscountValue] = useState('');
+  const [discountReason, setDiscountReason] = useState('');
+  const [discountApprovedBy, setDiscountApprovedBy] = useState('');
+  // Table transfer state
+  const [transferFromTable, setTransferFromTable] = useState<number | null>(null);
+  // Bill split state
+  const [splitOrders, setSplitOrders] = useState<OrderWithItems[] | null>(null);
   const [editNotes, setEditNotes] = useState('');
 
   useEffect(() => {
@@ -242,6 +258,24 @@ const Waiter: React.FC = () => {
     [currentTableOrders]
   );
 
+  // Discount calculations for payment dialog
+  const discountAmount = useMemo(() => {
+    if (!paymentTarget || !discountValue) return 0;
+    const val = parseFloat(discountValue);
+    if (isNaN(val) || val <= 0) return 0;
+    if (discountType === 'percent') return Math.min(paymentTarget.total * val / 100, paymentTarget.total);
+    return Math.min(val, paymentTarget.total);
+  }, [paymentTarget, discountType, discountValue]);
+
+  const finalTotal = useMemo(() => {
+    if (!paymentTarget) return 0;
+    return Math.max(0, paymentTarget.total - discountAmount);
+  }, [paymentTarget, discountAmount]);
+
+  const isTableCleaning = useCallback((num: number) => {
+    return tableStatuses.find(t => t.table_number === num)?.needs_cleaning ?? false;
+  }, [tableStatuses]);
+
   const submitOrder = async () => {
     if (!tableNumber || cart.length === 0 || !user) return;
     // Open kitchen window NOW (within user-gesture context) before the async call
@@ -284,6 +318,10 @@ const Waiter: React.FC = () => {
     const tableOrders = activeOrders.filter(o => o.table_number === num);
     if (tableOrders.length > 0) {
       setPreviewTable(num);
+    } else if (isTableCleaning(num)) {
+      // Tap a "needs cleaning" table → mark it as clean and open for ordering
+      setTableCleaning.mutate({ tableNumber: num, needsCleaning: false });
+      enterTable(num);
     } else {
       enterTable(num);
     }
@@ -306,6 +344,11 @@ const Waiter: React.FC = () => {
     setPaymentTarget({ orderIds, total });
     setPaymentMethod(null);
     setPaymentNote('');
+    setShowDiscountForm(false);
+    setDiscountType('percent');
+    setDiscountValue('');
+    setDiscountReason('');
+    setDiscountApprovedBy('');
   };
 
   const paymentMethodLabel = (method: PaymentMethod): string => ({
@@ -318,18 +361,26 @@ const Waiter: React.FC = () => {
   const confirmPayment = async () => {
     if (!paymentTarget || !paymentMethod) return;
 
+    const paidTableNumber = tableNumber ?? previewTable ?? 0;
+    const appliedDiscount = discountAmount;
+    const appliedFinalTotal = finalTotal;
+
     // Capture receipt data before state clears
     const paidOrders = activeOrders.filter(o => paymentTarget.orderIds.includes(o.id));
     const receiptData = {
       cafeName: 'Cafe Nof',
-      tableNumber: tableNumber ?? previewTable ?? 0,
+      tableNumber: paidTableNumber,
       items: paidOrders.flatMap(o => o.order_items.map(oi => ({
         name: getName(oi.menu_items),
         quantity: oi.quantity,
         unitPrice: oi.unit_price,
         notes: oi.notes,
       }))),
-      total: paymentTarget.total,
+      subtotal: paymentTarget.total,
+      discountType: appliedDiscount > 0 ? discountType : null,
+      discountAmount: appliedDiscount,
+      discountReason: discountReason || null,
+      total: appliedFinalTotal,
       paymentLabel: paymentMethodLabel(paymentMethod),
       sessionNote: sessionNote || null,
     };
@@ -340,8 +391,23 @@ const Waiter: React.FC = () => {
         status: 'paid',
         payment_method: paymentMethod,
         payment_note: paymentNote || null,
+        discount_type: appliedDiscount > 0 ? discountType : null,
+        discount_amount: appliedDiscount,
+        discount_reason: discountReason || null,
+        discount_approved_by: discountApprovedBy || null,
       });
     }
+
+    // Mark table as needing cleaning after payment
+    if (paidTableNumber > 0) {
+      const remaining = activeOrders.filter(
+        o => o.table_number === paidTableNumber && !paymentTarget.orderIds.includes(o.id)
+      );
+      if (remaining.length === 0) {
+        setTableCleaning.mutate({ tableNumber: paidTableNumber, needsCleaning: true });
+      }
+    }
+
     setPaymentTarget(null);
     if (previewTable !== null) {
       const remaining = activeOrders.filter(
@@ -350,7 +416,7 @@ const Waiter: React.FC = () => {
       if (remaining.length === 0) setPreviewTable(null);
     }
 
-    toast.success(`תשלום אושר — שולחן ${receiptData.tableNumber}`, {
+    toast.success(`תשלום אושר — שולחן ${paidTableNumber}`, {
       action: {
         label: '🖨️ הדפס קבלה',
         onClick: () => printReceipt(receiptData),
@@ -381,16 +447,19 @@ const Waiter: React.FC = () => {
   if (tableNumber === null) {
     const renderTable = (num: number) => {
       const status = getTableStatus(num, activeOrders);
+      const cleaning = status === 'free' && isTableCleaning(num);
       const tblOrders = activeOrders.filter(o => o.table_number === num);
       const tblTotal = tblOrders.reduce((sum, o) => sum + o.total_price, 0);
       const hasServed = tblOrders.some(o => o.status === 'served');
       const tblColor =
-        status === 'free'           ? 'bg-stone-50 border-2 border-stone-300 text-stone-600 hover:border-stone-400' :
+        cleaning              ? 'bg-purple-100 border-2 border-purple-400 text-purple-700 hover:bg-purple-200' :
+        status === 'free'     ? 'bg-stone-50 border-2 border-stone-300 text-stone-600 hover:border-stone-400' :
         status === 'new'            ? 'bg-amber-400 border-2 border-amber-500 text-white' :
         status === 'in_preparation' ? 'bg-orange-500 border-2 border-orange-600 text-white' :
                                       'bg-emerald-500 border-2 border-emerald-600 text-white';
       const tblShadow =
-        status === 'free'           ? 'shadow-md shadow-stone-300/60' :
+        cleaning              ? 'shadow-md shadow-purple-400/40' :
+        status === 'free'     ? 'shadow-md shadow-stone-300/60' :
         status === 'new'            ? 'shadow-lg shadow-amber-400/50' :
         status === 'in_preparation' ? 'shadow-lg shadow-orange-500/50' :
                                       'shadow-lg shadow-emerald-500/50';
@@ -399,14 +468,24 @@ const Waiter: React.FC = () => {
           key={num}
           onClick={() => handleSelectTable(num)}
           className={`relative flex flex-col items-center justify-center w-20 h-[52px] rounded-full transition-all duration-200 hover:scale-110 active:scale-95 ${tblColor} ${tblShadow}`}
+          title={cleaning ? 'צריך ניקוי — לחץ לנקות' : undefined}
         >
           <span className="absolute -top-2 left-1/2 -translate-x-1/2 w-5 h-1.5 rounded-full bg-stone-400/40" />
           <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-5 h-1.5 rounded-full bg-stone-400/40" />
-          <span className="text-base font-black leading-none">{num}</span>
-          {tblTotal > 0 && (
-            <span className="text-[9px] font-bold opacity-90 leading-none mt-0.5">
-              ₪{tblTotal % 1 === 0 ? tblTotal : tblTotal.toFixed(0)}
-            </span>
+          {cleaning ? (
+            <>
+              <span className="text-base leading-none">🧹</span>
+              <span className="text-[9px] font-bold leading-none mt-0.5">{num}</span>
+            </>
+          ) : (
+            <>
+              <span className="text-base font-black leading-none">{num}</span>
+              {tblTotal > 0 && (
+                <span className="text-[9px] font-bold opacity-90 leading-none mt-0.5">
+                  ₪{tblTotal % 1 === 0 ? tblTotal : tblTotal.toFixed(0)}
+                </span>
+              )}
+            </>
           )}
           {tblOrders.length > 0 && !hasServed && (
             <span className="absolute -top-2 -right-1 w-4 h-4 rounded-full bg-white text-[9px] font-black text-stone-800 flex items-center justify-center border border-stone-200 shadow-sm">
@@ -459,6 +538,7 @@ const Waiter: React.FC = () => {
             { color: 'bg-amber-400', label: t('waiter.active') },
             { color: 'bg-orange-500', label: t('waiter.preparing') },
             { color: 'bg-emerald-500', label: t('waiter.waitingPayment') },
+            { color: 'bg-purple-300', label: 'צריך ניקוי' },
           ].map(({ color, label }) => (
             <span key={label} className="flex items-center gap-1.5">
               <span className={`w-3 h-2 rounded-full ${color} inline-block`} />
@@ -540,6 +620,8 @@ const Waiter: React.FC = () => {
                 orders={activeOrders.filter(o => o.table_number === previewTable)}
                 onEnterOrdering={() => enterTable(previewTable)}
                 onRequestPayment={openPaymentDialog}
+                onRequestTransfer={(from) => { setTransferFromTable(from); setPreviewTable(null); }}
+                onRequestSplit={(ords) => { setSplitOrders(ords); setPreviewTable(null); }}
                 isPending={updateOrderStatus.isPending}
                 getName={getName}
                 getStatusLabel={getStatusLabel}
@@ -549,6 +631,42 @@ const Waiter: React.FC = () => {
             )}
           </SheetContent>
         </Sheet>
+
+        {/* Table Transfer Dialog */}
+        <Dialog open={transferFromTable !== null} onOpenChange={(open) => { if (!open) setTransferFromTable(null); }}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <ArrowRightLeft className="w-5 h-5" />
+                העבר שולחן {transferFromTable} ל...
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-xs text-muted-foreground mb-3">בחר שולחן יעד (פנוי בלבד)</p>
+            <div className="grid grid-cols-5 gap-2">
+              {Array.from({ length: tableCount }, (_, i) => i + 1)
+                .filter(n => n !== transferFromTable && getTableStatus(n, activeOrders) === 'free' && !isTableCleaning(n))
+                .map(n => (
+                  <button
+                    key={n}
+                    onClick={async () => {
+                      if (!transferFromTable) return;
+                      await transferTable.mutateAsync({ fromTable: transferFromTable, toTable: n });
+                      setTransferFromTable(null);
+                    }}
+                    disabled={transferTable.isPending}
+                    className="h-10 w-full rounded-xl border-2 border-border bg-card font-bold text-sm hover:border-primary hover:bg-primary/10 transition-all"
+                  >
+                    {n}
+                  </button>
+                ))}
+            </div>
+            {transferTable.isPending && (
+              <div className="flex justify-center py-2">
+                <Loader2 className="w-5 h-5 animate-spin text-accent" />
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Settings Dialog */}
         <Dialog open={showSettings} onOpenChange={setShowSettings}>
@@ -599,12 +717,81 @@ const Waiter: React.FC = () => {
             <DialogHeader>
               <DialogTitle>{t('waiter.selectPayment')}</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 pt-2">
+            <div className="space-y-3 pt-2">
+              {/* Total display */}
               {paymentTarget && (
-                <p className="text-center text-2xl font-black text-foreground">
-                  ₪{paymentTarget.total.toFixed(2)}
-                </p>
+                <div className="text-center py-1">
+                  {discountAmount > 0 && (
+                    <p className="text-sm text-muted-foreground line-through">₪{paymentTarget.total.toFixed(2)}</p>
+                  )}
+                  <p className="text-3xl font-black text-foreground">₪{finalTotal.toFixed(2)}</p>
+                  {discountAmount > 0 && (
+                    <p className="text-xs font-bold text-emerald-600 mt-0.5">חסכת ₪{discountAmount.toFixed(2)}</p>
+                  )}
+                </div>
               )}
+              {/* Discount section */}
+              <div className="border border-border rounded-xl overflow-hidden">
+                <button
+                  className="w-full flex items-center justify-between px-3 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/50 transition-colors"
+                  onClick={() => setShowDiscountForm(v => !v)}
+                >
+                  <span className="flex items-center gap-2">
+                    <Tag className="w-4 h-4 text-muted-foreground" />
+                    הנחה
+                    {discountAmount > 0 && (
+                      <span className="text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full">
+                        −₪{discountAmount.toFixed(2)}
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-muted-foreground text-xs">{showDiscountForm ? '▲' : '▼'}</span>
+                </button>
+                {showDiscountForm && (
+                  <div className="px-3 pb-3 pt-1 space-y-2 border-t border-border bg-muted/20">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setDiscountType('percent')}
+                        className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                          discountType === 'percent' ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-background text-muted-foreground'
+                        }`}
+                      >
+                        <Percent className="w-3 h-3" /> %
+                      </button>
+                      <button
+                        onClick={() => setDiscountType('fixed')}
+                        className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                          discountType === 'fixed' ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-background text-muted-foreground'
+                        }`}
+                      >
+                        ₪ קבוע
+                      </button>
+                    </div>
+                    <Input
+                      type="number"
+                      placeholder={discountType === 'percent' ? 'אחוז הנחה (0-100)' : 'סכום הנחה ב-₪'}
+                      value={discountValue}
+                      onChange={(e) => setDiscountValue(e.target.value)}
+                      className="h-8 text-sm"
+                      min="0"
+                      max={discountType === 'percent' ? '100' : undefined}
+                    />
+                    <Input
+                      placeholder="סיבה (אופציונלי)"
+                      value={discountReason}
+                      onChange={(e) => setDiscountReason(e.target.value)}
+                      className="h-8 text-sm"
+                    />
+                    <Input
+                      placeholder="מאשר ההנחה (שם)"
+                      value={discountApprovedBy}
+                      onChange={(e) => setDiscountApprovedBy(e.target.value)}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                )}
+              </div>
+              {/* Payment methods */}
               <div className="grid grid-cols-2 gap-3">
                 {([
                   { method: 'cash'   as PaymentMethod, label: t('waiter.cash'),   icon: <Banknote className="w-6 h-6" /> },
@@ -626,14 +813,12 @@ const Waiter: React.FC = () => {
                   </button>
                 ))}
               </div>
-              <div>
-                <Input
-                  placeholder={t('waiter.paymentNote')}
-                  value={paymentNote}
-                  onChange={(e) => setPaymentNote(e.target.value)}
-                  className="text-sm"
-                />
-              </div>
+              <Input
+                placeholder={t('waiter.paymentNote')}
+                value={paymentNote}
+                onChange={(e) => setPaymentNote(e.target.value)}
+                className="text-sm"
+              />
               <Button
                 className="w-full h-12 text-base font-bold gap-2"
                 disabled={!paymentMethod || updateOrderStatus.isPending}
@@ -1218,6 +1403,17 @@ const Waiter: React.FC = () => {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Bill Split Sheet */}
+      {splitOrders && (
+        <BillSplitSheet
+          open={splitOrders !== null}
+          onClose={() => setSplitOrders(null)}
+          orders={splitOrders}
+          tableNumber={tableNumber ?? 0}
+          getName={getName}
+        />
+      )}
     </>
   );
 };
@@ -1229,6 +1425,8 @@ interface TablePreviewContentProps {
   orders: OrderWithItems[];
   onEnterOrdering: () => void;
   onRequestPayment: (orderIds: string[], total: number) => void;
+  onRequestTransfer: (fromTable: number) => void;
+  onRequestSplit: (orders: OrderWithItems[]) => void;
   isPending: boolean;
   getName: (item: { name_en: string; name_he: string; name_ar: string; name_ru?: string }) => string;
   getStatusLabel: (status: string) => string;
@@ -1237,7 +1435,7 @@ interface TablePreviewContentProps {
 }
 
 const TablePreviewContent: React.FC<TablePreviewContentProps> = ({
-  tableNumber, orders, onEnterOrdering, onRequestPayment, isPending, getName, now,
+  tableNumber, orders, onEnterOrdering, onRequestPayment, onRequestTransfer, onRequestSplit, isPending, getName, now,
 }) => {
   const grandTotal = orders.reduce((sum, o) => sum + o.total_price, 0);
   const allItems = orders.flatMap(o =>
@@ -1265,6 +1463,7 @@ const TablePreviewContent: React.FC<TablePreviewContentProps> = ({
         unitPrice: oi.unit_price,
         notes: oi.notes,
       })),
+      subtotal: grandTotal,
       total: grandTotal,
     });
   };
@@ -1333,7 +1532,7 @@ const TablePreviewContent: React.FC<TablePreviewContentProps> = ({
         <span className="text-2xl font-black text-foreground">₪{grandTotal.toFixed(2)}</span>
       </div>
 
-      {/* 3 action buttons — always visible */}
+      {/* Primary actions */}
       <div className="grid grid-cols-3 gap-2">
         <Button
           variant="outline"
@@ -1360,6 +1559,26 @@ const TablePreviewContent: React.FC<TablePreviewContentProps> = ({
         >
           <Printer className="w-5 h-5" />
           הדפס בון
+        </Button>
+      </div>
+
+      {/* Secondary actions */}
+      <div className="grid grid-cols-2 gap-2">
+        <Button
+          variant="outline"
+          className="flex-col h-[56px] gap-1 text-xs font-semibold rounded-xl text-muted-foreground"
+          onClick={() => onRequestTransfer(tableNumber)}
+        >
+          <ArrowRightLeft className="w-4 h-4" />
+          העבר שולחן
+        </Button>
+        <Button
+          variant="outline"
+          className="flex-col h-[56px] gap-1 text-xs font-semibold rounded-xl text-muted-foreground"
+          onClick={() => onRequestSplit(orders)}
+        >
+          <Scissors className="w-4 h-4" />
+          פצל חשבון
         </Button>
       </div>
     </div>

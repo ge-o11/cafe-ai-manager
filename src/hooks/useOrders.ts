@@ -4,17 +4,23 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export type PaymentMethod = 'cash' | 'credit' | 'app' | 'other';
+export type DiscountType = 'percent' | 'fixed';
 
 export interface Order {
   id: string;
   table_number: number;
   waiter_id: string;
+  employee_id: string | null;
   status: 'new' | 'in_preparation' | 'served' | 'paid' | 'cancelled';
   total_price: number;
   payment_method: PaymentMethod | null;
   payment_note: string | null;
   paid_at: string | null;
   session_note: string | null;
+  discount_type: DiscountType | null;
+  discount_amount: number;
+  discount_reason: string | null;
+  discount_approved_by: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -262,15 +268,27 @@ export const useUpdateOrderStatus = () => {
       status,
       payment_method,
       payment_note,
+      discount_type,
+      discount_amount,
+      discount_reason,
+      discount_approved_by,
     }: {
       id: string;
       status: Order['status'];
       payment_method?: PaymentMethod;
       payment_note?: string | null;
+      discount_type?: DiscountType | null;
+      discount_amount?: number;
+      discount_reason?: string | null;
+      discount_approved_by?: string | null;
     }) => {
       const updates: Record<string, unknown> = { status };
       if (payment_method !== undefined) updates.payment_method = payment_method;
       if (payment_note !== undefined) updates.payment_note = payment_note || null;
+      if (discount_type !== undefined) updates.discount_type = discount_type ?? null;
+      if (discount_amount !== undefined) updates.discount_amount = discount_amount;
+      if (discount_reason !== undefined) updates.discount_reason = discount_reason || null;
+      if (discount_approved_by !== undefined) updates.discount_approved_by = discount_approved_by || null;
 
       const { data, error } = await supabase
         .from('orders')
@@ -289,6 +307,27 @@ export const useUpdateOrderStatus = () => {
     onError: (error) => {
       toast.error('Failed to update order status');
       console.error(error);
+    },
+  });
+};
+
+export const useTransferTable = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ fromTable, toTable }: { fromTable: number; toTable: number }) => {
+      const { error } = await supabase
+        .from('orders')
+        .update({ table_number: toTable })
+        .eq('table_number', fromTable)
+        .in('status', ['new', 'in_preparation', 'served']);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      toast.success('שולחן הועבר בהצלחה');
+    },
+    onError: () => {
+      toast.error('שגיאה בהעברת שולחן');
     },
   });
 };

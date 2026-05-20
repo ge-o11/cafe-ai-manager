@@ -190,6 +190,9 @@ export interface DraftBonData {
   cafeName: string;
   tableNumber: number;
   items: { name: string; quantity: number; unitPrice: number; notes?: string | null }[];
+  subtotal: number;
+  discountAmount?: number;
+  discountReason?: string | null;
   total: number;
   sessionNote?: string | null;
 }
@@ -227,6 +230,10 @@ export function printDraftBon(data: DraftBonData) {
   <div class="divider"></div>
   ${itemRows}
   <div class="divider"></div>
+  ${(data.discountAmount && data.discountAmount > 0) ? `
+  <div class="row"><span>לפני הנחה:</span><span>₪${data.subtotal.toFixed(2)}</span></div>
+  <div class="row" style="color:#c00"><span>הנחה${data.discountReason ? ` — ${data.discountReason}` : ''}:</span><span>−₪${data.discountAmount.toFixed(2)}</span></div>
+  ` : ''}
   <div class="total-row"><span>סה"כ לתשלום:</span><span>₪${data.total.toFixed(2)}</span></div>
   ${data.sessionNote ? `<div class="note">הערה: ${data.sessionNote}</div>` : ''}
   <div class="divider"></div>
@@ -244,6 +251,10 @@ export interface PrintReceiptData {
   cafeName: string;
   tableNumber: number;
   items: { name: string; quantity: number; unitPrice: number; notes?: string | null }[];
+  subtotal: number;
+  discountType?: 'percent' | 'fixed' | null;
+  discountAmount?: number;
+  discountReason?: string | null;
   total: number;
   paymentLabel: string;
   sessionNote?: string | null;
@@ -298,7 +309,11 @@ export function printReceipt(data: PrintReceiptData) {
   <div class="divider"></div>
   ${itemRows}
   <div class="divider"></div>
-  <div class="total-row"><span>סה"כ:</span><span>₪${data.total.toFixed(2)}</span></div>
+  ${(data.discountAmount && data.discountAmount > 0) ? `
+  <div class="row"><span>סכום לפני הנחה:</span><span>₪${data.subtotal.toFixed(2)}</span></div>
+  <div class="row" style="color:#c00;font-weight:700"><span>הנחה${data.discountType === 'percent' && data.discountReason ? ` (${data.discountReason})` : data.discountReason ? ` — ${data.discountReason}` : ''}:</span><span>−₪${data.discountAmount.toFixed(2)}</span></div>
+  ` : ''}
+  <div class="total-row"><span>סה"כ לתשלום:</span><span>₪${data.total.toFixed(2)}</span></div>
   <div class="row meta"><span>אמצעי תשלום:</span><span>${data.paymentLabel}</span></div>
   ${data.sessionNote ? `<div class="note">הערה: ${data.sessionNote}</div>` : ''}
   <div class="divider"></div>

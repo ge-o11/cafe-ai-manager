@@ -113,6 +113,8 @@ export type Database = {
           name: string
           employee_number: string
           is_active: boolean
+          role: "waiter" | "kitchen" | "manager" | null
+          hourly_rate: number | null
           created_at: string
         }
         Insert: {
@@ -120,6 +122,8 @@ export type Database = {
           name: string
           employee_number: string
           is_active?: boolean
+          role?: "waiter" | "kitchen" | "manager" | null
+          hourly_rate?: number | null
           created_at?: string
         }
         Update: {
@@ -127,7 +131,27 @@ export type Database = {
           name?: string
           employee_number?: string
           is_active?: boolean
+          role?: "waiter" | "kitchen" | "manager" | null
+          hourly_rate?: number | null
           created_at?: string
+        }
+        Relationships: []
+      }
+      restaurant_tables: {
+        Row: {
+          table_number: number
+          needs_cleaning: boolean
+          updated_at: string
+        }
+        Insert: {
+          table_number: number
+          needs_cleaning?: boolean
+          updated_at?: string
+        }
+        Update: {
+          table_number?: number
+          needs_cleaning?: boolean
+          updated_at?: string
         }
         Relationships: []
       }
@@ -295,10 +319,15 @@ export type Database = {
           total_price: number
           updated_at: string
           waiter_id: string
+          employee_id: string | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null
           payment_note: string | null
           paid_at: string | null
           session_note: string | null
+          discount_type: "percent" | "fixed" | null
+          discount_amount: number
+          discount_reason: string | null
+          discount_approved_by: string | null
         }
         Insert: {
           created_at?: string
@@ -308,10 +337,15 @@ export type Database = {
           total_price?: number
           updated_at?: string
           waiter_id: string
+          employee_id?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           payment_note?: string | null
           paid_at?: string | null
           session_note?: string | null
+          discount_type?: "percent" | "fixed" | null
+          discount_amount?: number
+          discount_reason?: string | null
+          discount_approved_by?: string | null
         }
         Update: {
           created_at?: string
@@ -321,10 +355,15 @@ export type Database = {
           total_price?: number
           updated_at?: string
           waiter_id?: string
+          employee_id?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           payment_note?: string | null
           paid_at?: string | null
           session_note?: string | null
+          discount_type?: "percent" | "fixed" | null
+          discount_amount?: number
+          discount_reason?: string | null
+          discount_approved_by?: string | null
         }
         Relationships: []
       }
