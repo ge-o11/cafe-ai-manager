@@ -22,6 +22,7 @@ import {
   ClipboardList, CheckCircle2, Banknote, CreditCard, Smartphone, MoreHorizontal, Printer,
 } from 'lucide-react';
 import { printReceipt, openKitchenWindow, writeKitchenTicket } from '@/lib/printReceipt';
+import { toast } from 'sonner';
 
 interface CartItem {
   product_id: string;
@@ -266,6 +267,13 @@ const Waiter: React.FC = () => {
     setPaymentNote('');
   };
 
+  const paymentMethodLabel = (method: PaymentMethod): string => ({
+    cash: t('waiter.cash'),
+    credit: t('waiter.credit'),
+    app: t('waiter.appPay'),
+    other: t('waiter.other'),
+  })[method];
+
   const confirmPayment = async () => {
     if (!paymentTarget || !paymentMethod) return;
 
@@ -316,13 +324,6 @@ const Waiter: React.FC = () => {
     if (status === 'served') return t('waiter.served');
     return status;
   };
-
-  const paymentMethodLabel = (method: PaymentMethod): string => ({
-    cash: t('waiter.cash'),
-    credit: t('waiter.credit'),
-    app: t('waiter.appPay'),
-    other: t('waiter.other'),
-  })[method];
 
   // ─── Loading ───────────────────────────────────────────────────────────────
   if (authLoading) {
