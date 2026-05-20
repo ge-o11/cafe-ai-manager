@@ -11,7 +11,6 @@ import { useSettings, useUpdateSetting } from '@/hooks/useSettings';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -91,6 +90,9 @@ const Waiter: React.FC = () => {
   const [sessionNote, setSessionNote] = useState('');
   const [showSessionNote, setShowSessionNote] = useState(false);
   const [now, setNow] = useState(() => new Date());
+  const [editingItem, setEditingItem] = useState<NonNullable<typeof menuItems>[number] | null>(null);
+  const [editQty, setEditQty] = useState(1);
+  const [editNotes, setEditNotes] = useState('');
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30000);
@@ -194,6 +196,38 @@ const Waiter: React.FC = () => {
   const updateNotes = useCallback((productId: string, notes: string) => {
     setCart((prev) => prev.map((c) => c.product_id === productId ? { ...c, notes } : c));
   }, []);
+
+  const openItemEditor = useCallback((item: NonNullable<typeof menuItems>[number]) => {
+    const existing = cart.find(c => c.product_id === item.id);
+    setEditQty(existing?.quantity ?? 1);
+    setEditNotes(existing?.notes ?? '');
+    setEditingItem(item);
+  }, [cart]);
+
+  const confirmItemEdit = useCallback(() => {
+    if (!editingItem) return;
+    if (editQty <= 0) {
+      setCart(prev => prev.filter(c => c.product_id !== editingItem.id));
+    } else {
+      setCart(prev => {
+        const existing = prev.find(c => c.product_id === editingItem.id);
+        if (existing) {
+          return prev.map(c => c.product_id === editingItem.id
+            ? { ...c, quantity: editQty, notes: editNotes }
+            : c
+          );
+        }
+        return [...prev, {
+          product_id: editingItem.id,
+          name: getName(editingItem),
+          quantity: editQty,
+          unit_price: editingItem.price,
+          notes: editNotes,
+        }];
+      });
+    }
+    setEditingItem(null);
+  }, [editingItem, editQty, editNotes, getName]);
 
   const totalPrice = useMemo(() => cart.reduce((sum, c) => sum + c.unit_price * c.quantity, 0), [cart]);
   const totalItems = useMemo(() => cart.reduce((sum, c) => sum + c.quantity, 0), [cart]);
@@ -918,188 +952,119 @@ const Waiter: React.FC = () => {
 
           </header>
 
-          {/* Category sidebar + Product Grid */}
-          <div className="flex-1 flex overflow-hidden">
+          {/* Category chips + Product Tiles */}
+          <div className="flex-1 flex flex-col overflow-hidden">
 
-            {/* Vertical Category Sidebar */}
-            {!searchQuery && (
-              <nav className="w-[78px] shrink-0 border-l border-border bg-card overflow-y-auto flex flex-col py-1.5 gap-1 px-1">
+            {/* Horizontal scrollable category chips */}
+            <div className="shrink-0 border-b border-border bg-card px-3 py-2 flex gap-2 overflow-x-auto">
+              <button
+                onClick={() => setSelectedCategory(null)}
+                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                  selectedCategory === null
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                }`}
+              >
+                {t('waiter.all')}
+              </button>
+              {categories?.filter(c => c.is_active).map(cat => (
                 <button
-                  onClick={() => setSelectedCategory(null)}
-                  className={`flex flex-col items-center justify-center py-3 rounded-xl transition-all duration-150 ${
-                    selectedCategory === null
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                    selectedCategory === cat.id
                       ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'text-muted-foreground hover:bg-muted'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
                   }`}
                 >
-                  <span className="text-[11px] font-bold leading-tight">{t('waiter.all')}</span>
+                  {getName(cat)}
                 </button>
-                {categories?.filter(c => c.is_active).map(cat => {
-                  const count = menuItems?.filter(i => i.category_id === cat.id && i.is_active).length ?? 0;
-                  const isActive = selectedCategory === cat.id;
-                  return (
-                    <button
-                      key={cat.id}
-                      onClick={() => setSelectedCategory(cat.id)}
-                      className={`flex flex-col items-center justify-center py-3 rounded-xl transition-all duration-150 gap-0.5 ${
-                        isActive
-                          ? 'bg-primary text-primary-foreground shadow-sm'
-                          : 'text-muted-foreground hover:bg-muted'
-                      }`}
-                    >
-                      <span className="text-[11px] font-bold text-center leading-tight px-1">{getName(cat)}</span>
-                      <span className={`text-[9px] font-semibold ${isActive ? 'opacity-70' : 'opacity-40'}`}>{count}</span>
-                    </button>
-                  );
-                })}
-              </nav>
-            )}
+              ))}
+            </div>
 
-            {/* Items area */}
+            {/* Items grid */}
             <ScrollArea className="flex-1">
               {(catLoading || itemsLoading) ? (
                 <div className="flex justify-center py-16">
                   <Loader2 className="h-6 w-6 animate-spin text-accent" />
                 </div>
-              ) : (selectedCategory === null && !searchQuery) ? (
-                /* ── Grouped by category ── */
-                <div className="p-3 space-y-5">
-                  {groupedByCategory.length === 0 ? (
-                    <div className="flex flex-col items-center py-16 text-muted-foreground">
-                      <UtensilsCrossed className="w-8 h-8 mb-2 opacity-30" />
-                      <p className="text-sm">{t('waiter.noItemsFound')}</p>
-                    </div>
-                  ) : groupedByCategory.map(({ category, items }) => (
-                    <div key={category.id}>
-                      <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2.5 px-0.5">
-                        {getName(category)}
-                        <span className="ml-2 font-normal opacity-60">({items.length})</span>
-                      </h3>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2">
-                        {items.map(item => {
-                          const inCart = cart.find(c => c.product_id === item.id);
-                          const description = getDescription(item);
-                          return (
-                            <Card
-                              key={item.id}
-                              className={`overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-md active:scale-[0.97] rounded-xl border ${
-                                inCart ? 'border-accent/50 ring-1 ring-accent/20' : 'border-border'
-                              }`}
-                              onClick={() => addToCart(item)}
-                            >
-                              <CardContent className="p-0">
-                                {item.image_url ? (
-                                  <div className="aspect-[4/3] overflow-hidden relative">
-                                    <img src={item.image_url} alt={getName(item)} className="w-full h-full object-cover" />
-                                    {inCart && (
-                                      <div className="absolute top-1.5 right-1.5">
-                                        <Badge className="h-6 min-w-6 flex items-center justify-center text-xs font-bold bg-accent text-accent-foreground border-0 rounded-full">{inCart.quantity}</Badge>
-                                      </div>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <div className="aspect-[4/3] bg-muted flex items-center justify-center relative">
-                                    <UtensilsCrossed className="w-8 h-8 text-muted-foreground/30" />
-                                    {inCart && (
-                                      <div className="absolute top-1.5 right-1.5">
-                                        <Badge className="h-6 min-w-6 flex items-center justify-center text-xs font-bold bg-accent text-accent-foreground border-0 rounded-full">{inCart.quantity}</Badge>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                                <div className="p-2.5">
-                                  <p className="font-medium text-xs text-foreground truncate">{getName(item)}</p>
-                                  {description && <p className="text-[10px] text-muted-foreground truncate mt-0.5 leading-tight">{description}</p>}
-                                  <div className="flex items-center justify-between mt-1.5">
-                                    <span className="text-sm font-bold text-accent">₪{item.price}</span>
-                                    {inCart ? (
-                                      <div className="flex items-center gap-0.5" onClick={e => e.stopPropagation()}>
-                                        <Button size="icon" variant="ghost" className="h-6 w-6 rounded-md" onClick={() => updateQuantity(item.id, -1)}><Minus className="w-3 h-3" /></Button>
-                                        <span className="w-5 text-center text-xs font-bold">{inCart.quantity}</span>
-                                        <Button size="icon" variant="ghost" className="h-6 w-6 rounded-md" onClick={() => updateQuantity(item.id, 1)}><Plus className="w-3 h-3" /></Button>
-                                      </div>
-                                    ) : (
-                                      <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
-                                        <Plus className="w-3.5 h-3.5 text-primary" />
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
               ) : filteredItems && filteredItems.length > 0 ? (
-                /* ── Single category or search results ── */
                 <div className="p-3">
                   {searchQuery && (
                     <p className="text-xs text-muted-foreground mb-3 px-0.5">
-                      {filteredItems.length} תוצאות עבור "{searchQuery}"
+                      {filteredItems.length} תוצאות עבור &ldquo;{searchQuery}&rdquo;
                     </p>
                   )}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2">
-                    {filteredItems.map(item => {
-                      const inCart = cart.find(c => c.product_id === item.id);
-                      const description = getDescription(item);
-                      return (
-                        <Card
-                          key={item.id}
-                          className={`overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-md active:scale-[0.97] rounded-xl border ${
-                            inCart ? 'border-accent/50 ring-1 ring-accent/20' : 'border-border'
-                          }`}
-                          onClick={() => addToCart(item)}
-                        >
-                          <CardContent className="p-0">
-                            {item.image_url ? (
-                              <div className="aspect-[4/3] overflow-hidden relative">
-                                <img src={item.image_url} alt={getName(item)} className="w-full h-full object-cover" />
-                                {inCart && (
-                                  <div className="absolute top-1.5 right-1.5">
-                                    <Badge className="h-6 min-w-6 flex items-center justify-center text-xs font-bold bg-accent text-accent-foreground border-0 rounded-full">{inCart.quantity}</Badge>
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="aspect-[4/3] bg-muted flex items-center justify-center relative">
-                                <UtensilsCrossed className="w-8 h-8 text-muted-foreground/30" />
-                                {inCart && (
-                                  <div className="absolute top-1.5 right-1.5">
-                                    <Badge className="h-6 min-w-6 flex items-center justify-center text-xs font-bold bg-accent text-accent-foreground border-0 rounded-full">{inCart.quantity}</Badge>
-                                  </div>
-                                )}
-                              </div>
+                  {selectedCategory === null && !searchQuery ? (
+                    /* ── Grouped by category ── */
+                    <div className="space-y-5">
+                      {groupedByCategory.map(({ category, items }) => (
+                        <div key={category.id}>
+                          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2 px-0.5">
+                            {getName(category)}
+                          </h3>
+                          <div className="grid grid-cols-3 gap-2">
+                            {items.map(item => {
+                              const inCart = cart.find(c => c.product_id === item.id);
+                              return (
+                                <button
+                                  key={item.id}
+                                  onClick={() => openItemEditor(item)}
+                                  className={`relative flex flex-col items-start p-2.5 rounded-xl border-2 transition-all duration-150 active:scale-[0.97] text-left w-full ${
+                                    inCart
+                                      ? 'border-accent bg-accent/10 shadow-sm'
+                                      : 'border-border bg-card hover:border-accent/50 hover:bg-muted/50'
+                                  }`}
+                                >
+                                  {inCart && (
+                                    <span className="absolute top-1.5 right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-accent text-accent-foreground text-[10px] font-black flex items-center justify-center">
+                                      {inCart.quantity}
+                                    </span>
+                                  )}
+                                  <span className={`text-xs font-semibold text-foreground leading-tight ${inCart ? 'pr-6' : ''}`}>
+                                    {getName(item)}
+                                  </span>
+                                  <span className="text-sm font-bold text-accent mt-1.5">₪{item.price}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    /* ── Single category or search results ── */
+                    <div className="grid grid-cols-3 gap-2">
+                      {filteredItems.map(item => {
+                        const inCart = cart.find(c => c.product_id === item.id);
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => openItemEditor(item)}
+                            className={`relative flex flex-col items-start p-2.5 rounded-xl border-2 transition-all duration-150 active:scale-[0.97] text-left w-full ${
+                              inCart
+                                ? 'border-accent bg-accent/10 shadow-sm'
+                                : 'border-border bg-card hover:border-accent/50 hover:bg-muted/50'
+                            }`}
+                          >
+                            {inCart && (
+                              <span className="absolute top-1.5 right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-accent text-accent-foreground text-[10px] font-black flex items-center justify-center">
+                                {inCart.quantity}
+                              </span>
                             )}
-                            <div className="p-2.5">
-                              <p className="font-medium text-xs text-foreground truncate">{getName(item)}</p>
-                              {description && <p className="text-[10px] text-muted-foreground truncate mt-0.5 leading-tight">{description}</p>}
-                              <div className="flex items-center justify-between mt-1.5">
-                                <span className="text-sm font-bold text-accent">₪{item.price}</span>
-                                {inCart ? (
-                                  <div className="flex items-center gap-0.5" onClick={e => e.stopPropagation()}>
-                                    <Button size="icon" variant="ghost" className="h-6 w-6 rounded-md" onClick={() => updateQuantity(item.id, -1)}><Minus className="w-3 h-3" /></Button>
-                                    <span className="w-5 text-center text-xs font-bold">{inCart.quantity}</span>
-                                    <Button size="icon" variant="ghost" className="h-6 w-6 rounded-md" onClick={() => updateQuantity(item.id, 1)}><Plus className="w-3 h-3" /></Button>
-                                  </div>
-                                ) : (
-                                  <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
-                                    <Plus className="w-3.5 h-3.5 text-primary" />
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
+                            <span className={`text-xs font-semibold text-foreground leading-tight ${inCart ? 'pr-6' : ''}`}>
+                              {getName(item)}
+                            </span>
+                            <span className="text-sm font-bold text-accent mt-1.5">₪{item.price}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="flex flex-col items-center py-16 text-muted-foreground">
-                  <Search className="w-8 h-8 mb-2 opacity-30" />
+                  <UtensilsCrossed className="w-8 h-8 mb-2 opacity-30" />
                   <p className="text-sm">{t('waiter.noItemsFound')}</p>
                 </div>
               )}
@@ -1141,6 +1106,7 @@ const Waiter: React.FC = () => {
             t={t}
             onRequestPayment={openPaymentDialog}
             isPending={updateOrderStatus.isPending}
+            now={now}
           />
         </SheetContent>
       </Sheet>
@@ -1199,6 +1165,59 @@ const Waiter: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Item Editor Sheet — opens when tapping a menu tile */}
+      <Sheet open={editingItem !== null} onOpenChange={(open) => { if (!open) setEditingItem(null); }}>
+        <SheetContent side="bottom" className="rounded-t-2xl pb-8">
+          {editingItem && (
+            <div className="flex flex-col gap-5">
+              <SheetHeader className="pb-0">
+                <SheetTitle className="text-xl font-black">{getName(editingItem)}</SheetTitle>
+                <p className="text-2xl font-bold text-accent">₪{editingItem.price}</p>
+              </SheetHeader>
+
+              {/* Quantity stepper */}
+              <div className="flex items-center justify-center gap-6">
+                <button
+                  onClick={() => setEditQty(q => Math.max(0, q - 1))}
+                  className="w-12 h-12 rounded-full border-2 border-border bg-muted flex items-center justify-center hover:bg-destructive/10 hover:border-destructive transition-all"
+                >
+                  <Minus className="w-5 h-5" />
+                </button>
+                <span className="text-4xl font-black tabular-nums w-12 text-center">{editQty}</span>
+                <button
+                  onClick={() => setEditQty(q => q + 1)}
+                  className="w-12 h-12 rounded-full border-2 border-primary bg-primary/10 flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all"
+                >
+                  <Plus className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Notes */}
+              <Textarea
+                placeholder={t('waiter.specialRequests')}
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                className="resize-none h-20 bg-muted border-0 text-sm rounded-xl"
+              />
+
+              {/* Confirm / Remove */}
+              <Button
+                className="w-full h-12 text-base font-bold gap-2 rounded-xl"
+                onClick={confirmItemEdit}
+                disabled={editQty === 0 && !cart.find(c => c.product_id === editingItem.id)}
+                variant={editQty === 0 && !!cart.find(c => c.product_id === editingItem.id) ? 'destructive' : 'default'}
+              >
+                {editQty === 0 && cart.find(c => c.product_id === editingItem.id) ? (
+                  <><Trash2 className="w-5 h-5" /> הסר מהזמנה</>
+                ) : (
+                  <><ShoppingCart className="w-5 h-5" /> הוסף להזמנה · ₪{(editingItem.price * editQty).toFixed(2)}</>
+                )}
+              </Button>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </>
   );
 };
