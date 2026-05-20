@@ -506,6 +506,61 @@ const Waiter: React.FC = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Payment Method Dialog (accessible from table grid preview) */}
+        <Dialog open={paymentTarget !== null} onOpenChange={(open) => { if (!open) setPaymentTarget(null); }}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>{t('waiter.selectPayment')}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-2">
+              {paymentTarget && (
+                <p className="text-center text-2xl font-black text-foreground">
+                  ₪{paymentTarget.total.toFixed(2)}
+                </p>
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                {([
+                  { method: 'cash'   as PaymentMethod, label: t('waiter.cash'),   icon: <Banknote className="w-6 h-6" /> },
+                  { method: 'credit' as PaymentMethod, label: t('waiter.credit'), icon: <CreditCard className="w-6 h-6" /> },
+                  { method: 'app'    as PaymentMethod, label: t('waiter.appPay'), icon: <Smartphone className="w-6 h-6" /> },
+                  { method: 'other'  as PaymentMethod, label: t('waiter.other'),  icon: <MoreHorizontal className="w-6 h-6" /> },
+                ]).map(({ method, label, icon }) => (
+                  <button
+                    key={method}
+                    onClick={() => setPaymentMethod(method)}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all font-semibold text-sm ${
+                      paymentMethod === method
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border bg-background text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    {icon}
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div>
+                <Input
+                  placeholder={t('waiter.paymentNote')}
+                  value={paymentNote}
+                  onChange={(e) => setPaymentNote(e.target.value)}
+                  className="text-sm"
+                />
+              </div>
+              <Button
+                className="w-full h-12 text-base font-bold gap-2"
+                disabled={!paymentMethod || updateOrderStatus.isPending}
+                onClick={confirmPayment}
+              >
+                {updateOrderStatus.isPending
+                  ? <Loader2 className="w-5 h-5 animate-spin" />
+                  : <CheckCircle2 className="w-5 h-5" />}
+                {t('waiter.confirmPayment')}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
