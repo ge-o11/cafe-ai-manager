@@ -60,6 +60,60 @@ export function writeKitchenTicket(pw: Window, data: KitchenTicketData) {
   setTimeout(() => { pw.print(); pw.close(); }, 300);
 }
 
+export interface DraftBonData {
+  cafeName: string;
+  tableNumber: number;
+  items: { name: string; quantity: number; unitPrice: number; notes?: string | null }[];
+  total: number;
+  sessionNote?: string | null;
+}
+
+export function printDraftBon(data: DraftBonData) {
+  const timeStr = new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+  const itemRows = data.items.map(item => `
+    <div class="row">
+      <span>${item.quantity}× ${item.name}</span>
+      <span>₪${(item.unitPrice * item.quantity).toFixed(2)}</span>
+    </div>
+    ${item.notes ? `<div class="note">${item.notes}</div>` : ''}
+  `).join('');
+
+  const html = `<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head><meta charset="utf-8"><style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Courier New',monospace; font-size:13px; width:72mm; padding:8px 6px; direction:rtl; }
+  .center { text-align:center; }
+  .cafe-name { font-size:20px; font-weight:bold; margin:4px 0 4px; }
+  .draft-label { font-size:11px; border:1px dashed #999; padding:2px 8px; display:inline-block; margin-bottom:4px; color:#666; }
+  .divider { border-top:1px dashed #000; margin:5px 0; }
+  .row { display:flex; justify-content:space-between; margin:3px 0; }
+  .total-row { display:flex; justify-content:space-between; font-weight:bold; font-size:15px; margin:3px 0; }
+  .note { font-size:11px; color:#555; margin:0 8px 4px; font-style:italic; }
+  @media print { @page { margin:0; size:80mm auto; } body { width:100%; } }
+</style></head>
+<body>
+  <div class="center cafe-name">${data.cafeName}</div>
+  <div class="center"><span class="draft-label">בון — לא שולם</span></div>
+  <div class="divider"></div>
+  <div class="row"><span>שולחן:</span><span>${data.tableNumber}</span></div>
+  <div class="row"><span>שעה:</span><span>${timeStr}</span></div>
+  <div class="divider"></div>
+  ${itemRows}
+  <div class="divider"></div>
+  <div class="total-row"><span>סה"כ לתשלום:</span><span>₪${data.total.toFixed(2)}</span></div>
+  ${data.sessionNote ? `<div class="note">הערה: ${data.sessionNote}</div>` : ''}
+  <div class="divider"></div>
+</body></html>`;
+
+  const pw = window.open('', '_blank', 'width=380,height=550,toolbar=0,scrollbars=0,status=0,menubar=0');
+  if (!pw) { alert('נא לאפשר פופאפים בדפדפן כדי להדפיס'); return; }
+  pw.document.write(html);
+  pw.document.close();
+  pw.focus();
+  setTimeout(() => { pw.print(); pw.close(); }, 300);
+}
+
 export interface PrintReceiptData {
   cafeName: string;
   tableNumber: number;

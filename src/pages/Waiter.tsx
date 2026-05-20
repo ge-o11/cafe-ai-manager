@@ -21,7 +21,7 @@ import {
   UtensilsCrossed, Clock, StickyNote, ChevronLeft, LogOut, Settings,
   ClipboardList, CheckCircle2, Banknote, CreditCard, Smartphone, MoreHorizontal, Printer,
 } from 'lucide-react';
-import { printReceipt, openKitchenWindow, writeKitchenTicket } from '@/lib/printReceipt';
+import { printReceipt, openKitchenWindow, writeKitchenTicket, printDraftBon } from '@/lib/printReceipt';
 import { toast } from 'sonner';
 
 interface CartItem {
@@ -1150,120 +1150,129 @@ interface TablePreviewContentProps {
 }
 
 const TablePreviewContent: React.FC<TablePreviewContentProps> = ({
-  tableNumber, orders, onEnterOrdering, onRequestPayment, isPending, getName, getStatusLabel, t, now,
+  tableNumber, orders, onEnterOrdering, onRequestPayment, isPending, getName, now,
 }) => {
   const grandTotal = orders.reduce((sum, o) => sum + o.total_price, 0);
-  const servedOrders = orders.filter(o => o.status === 'served');
-  const servedTotal = servedOrders.reduce((sum, o) => sum + o.total_price, 0);
-  const unservedTotal = grandTotal - servedTotal;
-  const allServed = orders.length > 0 && orders.every(o => o.status === 'served');
+  const allItems = orders.flatMap(o =>
+    o.order_items.map(oi => ({ ...oi, orderStatus: o.status, orderCreatedAt: o.created_at }))
+  );
+  const totalQty = allItems.reduce((s, i) => s + i.quantity, 0);
 
-  const statusColor = (status: string) => {
-    if (status === 'served') return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300';
-    if (status === 'in_preparation') return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300';
-    return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
+  const statusCounts = {
+    new: orders.filter(o => o.status === 'new').length,
+    in_preparation: orders.filter(o => o.status === 'in_preparation').length,
+    served: orders.filter(o => o.status === 'served').length,
+  };
+
+  const oldestOrder = orders.reduce((oldest, o) =>
+    new Date(o.created_at) < new Date(oldest.created_at) ? o : oldest, orders[0]
+  );
+
+  const handlePrintDraft = () => {
+    printDraftBon({
+      cafeName: 'Cafe Nof',
+      tableNumber,
+      items: allItems.map(oi => ({
+        name: getName(oi.menu_items),
+        quantity: oi.quantity,
+        unitPrice: oi.unit_price,
+        notes: oi.notes,
+      })),
+      total: grandTotal,
+    });
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <SheetHeader>
-        <SheetTitle className="flex items-center justify-between">
-          <span>{t('waiter.tableDetails')} — {t('waiter.table')} {tableNumber}</span>
-          <span className="text-2xl font-black text-foreground">₪{grandTotal.toFixed(2)}</span>
-        </SheetTitle>
+    <div className="flex flex-col gap-3">
+      {/* Header */}
+      <SheetHeader className="pb-0">
+        <div className="flex items-start justify-between">
+          <div>
+            <SheetTitle className="text-3xl font-black leading-none">שולחן {tableNumber}</SheetTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              {totalQty} מנות · {orders.length} {orders.length === 1 ? 'הזמנה' : 'הזמנות'}
+            </p>
+          </div>
+          <div className="text-right">
+            <div className="text-3xl font-black text-foreground">₪{grandTotal.toFixed(2)}</div>
+            {oldestOrder && <WaitTimer createdAt={oldestOrder.created_at} now={now} />}
+          </div>
+        </div>
+
+        {/* Status pills */}
+        <div className="flex gap-1.5 mt-2 flex-wrap">
+          {statusCounts.new > 0 && (
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+              {statusCounts.new} חדשה
+            </span>
+          )}
+          {statusCounts.in_preparation > 0 && (
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+              {statusCounts.in_preparation} בהכנה 🍳
+            </span>
+          )}
+          {statusCounts.served > 0 && (
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+              {statusCounts.served} הוגש ✓
+            </span>
+          )}
+        </div>
       </SheetHeader>
 
-      {/* Orders list */}
-      <ScrollArea className="max-h-[45vh]">
-        <div className="space-y-3 pr-1">
-          {orders.map((order) => (
-            <div
-              key={order.id}
-              className={`rounded-xl border p-3 space-y-2 ${
-                order.status === 'served'
-                  ? 'border-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-700'
-                  : 'border-border bg-muted/40'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${statusColor(order.status)}`}>
-                  {getStatusLabel(order.status)}
+      {/* Flat items list */}
+      <ScrollArea className="max-h-[38vh] rounded-xl border border-border bg-muted/30">
+        <div className="p-3 space-y-0">
+          {allItems.map((oi) => (
+            <div key={oi.id} className="flex items-start justify-between py-2 border-b border-border/30 last:border-0">
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium text-foreground">
+                  {oi.quantity}× {getName(oi.menu_items)}
                 </span>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                  <WaitTimer createdAt={order.created_at} now={now} />
-                </div>
+                {oi.notes && (
+                  <p className="text-xs text-muted-foreground italic mt-0.5">↳ {oi.notes}</p>
+                )}
               </div>
-
-              <div className="space-y-1">
-                {order.order_items.map((oi) => (
-                  <div key={oi.id} className="flex items-center justify-between text-sm">
-                    <span className="text-foreground">{oi.quantity}× {getName(oi.menu_items)}</span>
-                    <span className="text-muted-foreground text-xs">₪{(oi.unit_price * oi.quantity).toFixed(2)}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex items-center justify-between pt-1 border-t border-border/50 text-sm font-semibold">
-                <span className="text-muted-foreground text-xs">{t('waiter.total')}</span>
-                <span>₪{order.total_price.toFixed(2)}</span>
-              </div>
+              <span className="text-sm font-semibold text-foreground shrink-0 ml-4">
+                ₪{(oi.unit_price * oi.quantity).toFixed(2)}
+              </span>
             </div>
           ))}
         </div>
       </ScrollArea>
 
-      {/* Summary + actions */}
-      <div className="space-y-3 pt-2 border-t border-border">
-        {/* Grand total breakdown */}
-        <div className="bg-muted rounded-xl p-3 space-y-1.5">
-          {servedOrders.length > 0 && unservedTotal > 0 && (
-            <>
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>{t('waiter.servedOrders')}</span>
-                <span>₪{servedTotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>{t('waiter.preparing')} / {t('waiter.active')}</span>
-                <span>₪{unservedTotal.toFixed(2)}</span>
-              </div>
-              <div className="h-px bg-border my-1" />
-            </>
-          )}
-          <div className="flex justify-between items-center">
-            <span className="font-semibold text-foreground">{t('waiter.outstanding')}</span>
-            <span className="text-xl font-black text-foreground">₪{grandTotal.toFixed(2)}</span>
-          </div>
-        </div>
+      {/* Total row */}
+      <div className="flex justify-between items-center bg-muted rounded-xl px-4 py-3">
+        <span className="font-semibold text-sm text-muted-foreground">סה"כ לתשלום</span>
+        <span className="text-2xl font-black text-foreground">₪{grandTotal.toFixed(2)}</span>
+      </div>
 
-        {/* Pay button — only if there are served orders */}
-        {servedOrders.length > 0 && (
-          <Button
-            className="w-full h-12 text-base font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
-            onClick={() => onRequestPayment(servedOrders.map(o => o.id), allServed ? grandTotal : servedTotal)}
-            disabled={isPending}
-          >
-            {isPending
-              ? <Loader2 className="w-5 h-5 animate-spin" />
-              : <CheckCircle2 className="w-5 h-5" />
-            }
-            {allServed
-              ? `${t('waiter.payNow')} · ₪${grandTotal.toFixed(2)}`
-              : `${t('waiter.payNow')} · ₪${servedTotal.toFixed(2)}`
-            }
-          </Button>
-        )}
-
-        {/* Add items button */}
+      {/* 3 action buttons — always visible */}
+      <div className="grid grid-cols-3 gap-2">
         <Button
           variant="outline"
-          className="w-full h-10 font-semibold gap-2"
+          className="flex-col h-[70px] gap-1.5 text-xs font-semibold rounded-xl"
           onClick={onEnterOrdering}
         >
-          <Plus className="w-4 h-4" />
-          {t('waiter.addItems')}
+          <Plus className="w-5 h-5" />
+          הוסף מנות
+        </Button>
+        <Button
+          className="flex-col h-[70px] gap-1.5 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white"
+          onClick={() => onRequestPayment(orders.map(o => o.id), grandTotal)}
+          disabled={isPending}
+        >
+          {isPending
+            ? <Loader2 className="w-5 h-5 animate-spin" />
+            : <CreditCard className="w-5 h-5" />}
+          גבה תשלום
+        </Button>
+        <Button
+          variant="outline"
+          className="flex-col h-[70px] gap-1.5 text-xs font-semibold rounded-xl"
+          onClick={handlePrintDraft}
+        >
+          <Printer className="w-5 h-5" />
+          הדפס בון
         </Button>
       </div>
     </div>
