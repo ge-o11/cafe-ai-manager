@@ -21,7 +21,7 @@ import {
   UtensilsCrossed, Clock, StickyNote, ChevronLeft, LogOut, Settings,
   ClipboardList, CheckCircle2, Banknote, CreditCard, Smartphone, MoreHorizontal, Printer,
 } from 'lucide-react';
-import { printReceipt } from '@/lib/printReceipt';
+import { printReceipt, openKitchenWindow, writeKitchenTicket } from '@/lib/printReceipt';
 
 interface CartItem {
   product_id: string;
@@ -202,6 +202,8 @@ const Waiter: React.FC = () => {
 
   const submitOrder = async () => {
     if (!tableNumber || cart.length === 0 || !user) return;
+    // Open kitchen window NOW (within user-gesture context) before the async call
+    const kitchenWin = openKitchenWindow();
     try {
       await createOrder.mutateAsync({
         table_number: tableNumber,
@@ -213,10 +215,19 @@ const Waiter: React.FC = () => {
           product_id, quantity, unit_price, notes: notes || undefined,
         })),
       });
+      if (kitchenWin) {
+        writeKitchenTicket(kitchenWin, {
+          tableNumber,
+          items: cart.map(({ name, quantity, notes }) => ({ name, quantity, notes: notes || null })),
+          sessionNote: sessionNote || null,
+        });
+      }
       setCart([]);
       sessionStorage.removeItem(cartKey(tableNumber));
       setShowMobileCart(false);
-    } catch { /* toast handled in hook */ }
+    } catch {
+      kitchenWin?.close();
+    }
   };
 
   const enterTable = (num: number) => {
