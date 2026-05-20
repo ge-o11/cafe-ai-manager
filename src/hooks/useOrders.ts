@@ -70,6 +70,23 @@ export const useOrders = (status?: string) => {
 
 // Active (non-paid/cancelled) orders — used by Waiter for table status
 export const useActiveOrders = () => {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const channelName = `waiter-active-${Math.random().toString(36).slice(2, 9)}`;
+    const channel = supabase
+      .channel(channelName)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['orders', 'active'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['orders', 'active'] });
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
+
   return useQuery({
     queryKey: ['orders', 'active'],
     queryFn: async () => {
@@ -88,7 +105,7 @@ export const useActiveOrders = () => {
       if (error) throw error;
       return data as OrderWithItems[];
     },
-    refetchInterval: 15000,
+    refetchInterval: 30000,
   });
 };
 

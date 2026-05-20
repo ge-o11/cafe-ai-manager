@@ -88,6 +88,12 @@ const Waiter: React.FC = () => {
   const [paymentNote, setPaymentNote] = useState('');
   const [sessionNote, setSessionNote] = useState('');
   const [showSessionNote, setShowSessionNote] = useState(false);
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(id);
+  }, []);
 
   // Load cart + session note from sessionStorage when table is selected
   useEffect(() => {
@@ -452,6 +458,7 @@ const Waiter: React.FC = () => {
                 getName={getName}
                 getStatusLabel={getStatusLabel}
                 t={t}
+                now={now}
               />
             )}
           </SheetContent>
@@ -718,6 +725,7 @@ const Waiter: React.FC = () => {
               t={t}
               onRequestPayment={openPaymentDialog}
               isPending={updateOrderStatus.isPending}
+              now={now}
             />
           </SheetContent>
         </Sheet>
@@ -1038,10 +1046,11 @@ interface TablePreviewContentProps {
   getName: (item: { name_en: string; name_he: string; name_ar: string; name_ru?: string }) => string;
   getStatusLabel: (status: string) => string;
   t: (key: string) => string;
+  now: Date;
 }
 
 const TablePreviewContent: React.FC<TablePreviewContentProps> = ({
-  tableNumber, orders, onEnterOrdering, onRequestPayment, isPending, getName, getStatusLabel, t,
+  tableNumber, orders, onEnterOrdering, onRequestPayment, isPending, getName, getStatusLabel, t, now,
 }) => {
   const grandTotal = orders.reduce((sum, o) => sum + o.total_price, 0);
   const servedOrders = orders.filter(o => o.status === 'served');
@@ -1080,9 +1089,11 @@ const TablePreviewContent: React.FC<TablePreviewContentProps> = ({
                 <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${statusColor(order.status)}`}>
                   {getStatusLabel(order.status)}
                 </span>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Clock className="w-3 h-3" />
-                  {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  <WaitTimer createdAt={order.created_at} now={now} />
                 </div>
               </div>
 
@@ -1168,6 +1179,7 @@ interface ActiveOrdersContentProps {
   t: (key: string) => string;
   onRequestPayment: (orderIds: string[], total: number) => void;
   isPending: boolean;
+  now: Date;
 }
 
 const STATUS_BADGE_VARIANT: Record<string, 'default' | 'secondary' | 'outline'> = {
@@ -1176,8 +1188,22 @@ const STATUS_BADGE_VARIANT: Record<string, 'default' | 'secondary' | 'outline'> 
   served: 'outline',
 };
 
+const WaitTimer = ({ createdAt, now }: { createdAt: string; now: Date }) => {
+  const mins = Math.floor((now.getTime() - new Date(createdAt).getTime()) / 60000);
+  const cls =
+    mins < 10  ? 'text-emerald-600 dark:text-emerald-400' :
+    mins < 20  ? 'text-amber-600 dark:text-amber-400' :
+                 'text-red-600 dark:text-red-400 animate-pulse';
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-xs font-bold tabular-nums ${cls}`}>
+      <Clock className="w-3 h-3" />
+      {mins}′
+    </span>
+  );
+};
+
 const ActiveOrdersContent: React.FC<ActiveOrdersContentProps> = ({
-  orders, tableNumber, getName, getStatusLabel, t, onRequestPayment, isPending,
+  orders, tableNumber, getName, getStatusLabel, t, onRequestPayment, isPending, now,
 }) => (
   <>
     <SheetHeader>
@@ -1215,14 +1241,14 @@ const ActiveOrdersContent: React.FC<ActiveOrdersContentProps> = ({
                       {getStatusLabel(order.status)}
                     </Badge>
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Clock className="w-3 h-3" />
-                    <span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">
                       {new Date(order.created_at).toLocaleTimeString([], {
                         hour: '2-digit',
                         minute: '2-digit',
                       })}
                     </span>
+                    <WaitTimer createdAt={order.created_at} now={now} />
                   </div>
                 </div>
 
