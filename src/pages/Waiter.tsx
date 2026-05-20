@@ -19,8 +19,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import {
   Loader2, Search, Plus, Minus, Trash2, ShoppingCart, Send, X,
   UtensilsCrossed, Clock, StickyNote, ChevronLeft, LogOut, Settings,
-  ClipboardList, CheckCircle2, Banknote, CreditCard, Smartphone, MoreHorizontal,
+  ClipboardList, CheckCircle2, Banknote, CreditCard, Smartphone, MoreHorizontal, Printer,
 } from 'lucide-react';
+import { printReceipt } from '@/lib/printReceipt';
 
 interface CartItem {
   product_id: string;
@@ -256,6 +257,23 @@ const Waiter: React.FC = () => {
 
   const confirmPayment = async () => {
     if (!paymentTarget || !paymentMethod) return;
+
+    // Capture receipt data before state clears
+    const paidOrders = activeOrders.filter(o => paymentTarget.orderIds.includes(o.id));
+    const receiptData = {
+      cafeName: 'Cafe Nof',
+      tableNumber: tableNumber ?? previewTable ?? 0,
+      items: paidOrders.flatMap(o => o.order_items.map(oi => ({
+        name: getName(oi.menu_items),
+        quantity: oi.quantity,
+        unitPrice: oi.unit_price,
+        notes: oi.notes,
+      }))),
+      total: paymentTarget.total,
+      paymentLabel: paymentMethodLabel(paymentMethod),
+      sessionNote: sessionNote || null,
+    };
+
     for (const id of paymentTarget.orderIds) {
       await updateOrderStatus.mutateAsync({
         id,
@@ -271,6 +289,14 @@ const Waiter: React.FC = () => {
       );
       if (remaining.length === 0) setPreviewTable(null);
     }
+
+    toast.success(`תשלום אושר — שולחן ${receiptData.tableNumber}`, {
+      action: {
+        label: '🖨️ הדפס קבלה',
+        onClick: () => printReceipt(receiptData),
+      },
+      duration: 10000,
+    });
   };
 
   const getStatusLabel = (status: string) => {
@@ -279,6 +305,13 @@ const Waiter: React.FC = () => {
     if (status === 'served') return t('waiter.served');
     return status;
   };
+
+  const paymentMethodLabel = (method: PaymentMethod): string => ({
+    cash: t('waiter.cash'),
+    credit: t('waiter.credit'),
+    app: t('waiter.appPay'),
+    other: t('waiter.other'),
+  })[method];
 
   // ─── Loading ───────────────────────────────────────────────────────────────
   if (authLoading) {
