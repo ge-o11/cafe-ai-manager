@@ -10,14 +10,20 @@ export function openKitchenWindow(): Window | null {
 }
 
 export function writeKitchenTicket(pw: Window, data: KitchenTicketData) {
-  const timeStr = new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+  const dateStr = now.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' });
 
-  const itemRows = data.items.map(item => `
-    <div class="item">
-      <span class="qty">${item.quantity}×</span>
-      <span class="name">${item.name}</span>
+  const itemRows = data.items.map((item, i) => `
+    <div class="item ${item.notes ? 'has-note' : ''}">
+      <div class="item-top">
+        <span class="qty">${item.quantity}</span>
+        <span class="x">×</span>
+        <span class="name">${item.name}</span>
+      </div>
+      ${item.notes ? `<div class="note">⚠ ${item.notes}</div>` : ''}
     </div>
-    ${item.notes ? `<div class="note">⚠️ ${item.notes}</div>` : ''}
+    ${i < data.items.length - 1 ? '<div class="item-sep"></div>' : ''}
   `).join('');
 
   const html = `<!DOCTYPE html>
@@ -26,16 +32,126 @@ export function writeKitchenTicket(pw: Window, data: KitchenTicketData) {
   <meta charset="utf-8">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Courier New', Courier, monospace; width: 72mm; padding: 8px 6px; direction: rtl; }
-    .table-num { font-size: 52px; font-weight: 900; text-align: center; line-height: 1; margin: 4px 0; }
-    .label { font-size: 13px; text-align: center; color: #333; margin-bottom: 2px; }
-    .time { font-size: 14px; text-align: center; font-weight: bold; margin-bottom: 4px; }
-    .divider { border-top: 2px solid #000; margin: 6px 0; }
-    .item { display: flex; align-items: baseline; gap: 6px; margin: 5px 0; }
-    .qty { font-size: 18px; font-weight: 900; min-width: 28px; }
-    .name { font-size: 16px; font-weight: bold; }
-    .note { font-size: 13px; font-weight: bold; margin: 2px 0 4px 8px; background: #ff0; padding: 1px 4px; }
-    .session { font-size: 12px; border: 1px dashed #999; padding: 4px 6px; margin-top: 6px; }
+
+    body {
+      font-family: Arial, 'Helvetica Neue', sans-serif;
+      width: 80mm;
+      padding: 6px 8px 10px;
+      direction: rtl;
+      background: #fff;
+    }
+
+    /* ── Header ── */
+    .header {
+      text-align: center;
+      padding-bottom: 6px;
+      border-bottom: 3px solid #000;
+      margin-bottom: 8px;
+    }
+    .header-label {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #555;
+    }
+    .table-block {
+      margin: 4px 0 2px;
+    }
+    .table-word {
+      font-size: 16px;
+      font-weight: 700;
+      color: #333;
+      display: block;
+    }
+    .table-num {
+      font-size: 80px;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -2px;
+      display: block;
+    }
+    .datetime {
+      font-size: 15px;
+      font-weight: 700;
+      color: #333;
+      margin-top: 2px;
+    }
+
+    /* ── Items ── */
+    .items-section {
+      margin: 4px 0;
+    }
+    .item {
+      padding: 7px 4px;
+    }
+    .item.has-note {
+      background: #fffbe6;
+      border-radius: 4px;
+      padding: 7px 6px;
+      margin: 2px 0;
+    }
+    .item-top {
+      display: flex;
+      align-items: baseline;
+      gap: 5px;
+    }
+    .qty {
+      font-size: 34px;
+      font-weight: 900;
+      line-height: 1;
+      min-width: 32px;
+      color: #000;
+    }
+    .x {
+      font-size: 20px;
+      font-weight: 900;
+      color: #555;
+      margin-top: 4px;
+    }
+    .name {
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1.2;
+      color: #000;
+      flex: 1;
+    }
+    .note {
+      font-size: 15px;
+      font-weight: 800;
+      color: #000;
+      background: #ffe000;
+      padding: 3px 6px;
+      margin-top: 4px;
+      border-radius: 3px;
+      display: inline-block;
+    }
+    .item-sep {
+      border-top: 1px dashed #bbb;
+      margin: 0 4px;
+    }
+
+    /* ── Session note ── */
+    .session {
+      border: 2px dashed #aaa;
+      border-radius: 4px;
+      padding: 5px 8px;
+      margin-top: 8px;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      border-top: 3px solid #000;
+      margin-top: 8px;
+      padding-top: 5px;
+      text-align: center;
+      font-size: 12px;
+      color: #666;
+      font-weight: 600;
+    }
+
     @media print {
       @page { margin: 0; size: 80mm auto; }
       body { width: 100%; }
@@ -43,14 +159,24 @@ export function writeKitchenTicket(pw: Window, data: KitchenTicketData) {
   </style>
 </head>
 <body>
-  <div class="label">🍳 הזמנה חדשה</div>
-  <div class="table-num">${data.tableNumber}</div>
-  <div class="label">שולחן</div>
-  <div class="time">${timeStr}</div>
-  <div class="divider"></div>
-  ${itemRows}
-  ${data.sessionNote ? `<div class="session">📝 ${data.sessionNote}</div>` : ''}
-  <div class="divider"></div>
+
+  <div class="header">
+    <div class="header-label">★ הזמנה חדשה ★</div>
+    <div class="table-block">
+      <span class="table-word">שולחן</span>
+      <span class="table-num">${data.tableNumber}</span>
+    </div>
+    <div class="datetime">${dateStr} &nbsp;|&nbsp; ${timeStr}</div>
+  </div>
+
+  <div class="items-section">
+    ${itemRows}
+  </div>
+
+  ${data.sessionNote ? `<div class="session">📝 &nbsp;${data.sessionNote}</div>` : ''}
+
+  <div class="footer">סה"כ ${data.items.reduce((s, i) => s + i.quantity, 0)} מנות</div>
+
 </body>
 </html>`;
 
