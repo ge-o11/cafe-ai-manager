@@ -21,7 +21,7 @@ import {
   Loader2, Search, Plus, Minus, Trash2, ShoppingCart, Send, X,
   UtensilsCrossed, Clock, StickyNote, ChevronLeft, LogOut, Settings,
   ClipboardList, CheckCircle2, Banknote, CreditCard, Smartphone, MoreHorizontal, Printer,
-  ArrowRightLeft, Scissors, Percent, Tag, Sparkles,
+  ArrowRightLeft, Scissors, Percent, Tag, Sparkles, SlidersHorizontal, Check,
 } from 'lucide-react';
 import { printReceipt, openKitchenWindow, writeKitchenTicket, printDraftBon } from '@/lib/printReceipt';
 import { toast } from 'sonner';
@@ -108,6 +108,8 @@ const Waiter: React.FC = () => {
   const [transferFromTable, setTransferFromTable] = useState<number | null>(null);
   // Bill split state
   const [splitOrders, setSplitOrders] = useState<OrderWithItems[] | null>(null);
+  // Modifier picker dialog (centered)
+  const [modifiersDialogItem, setModifiersDialogItem] = useState<string | null>(null);
   const [editNotes, setEditNotes] = useState('');
 
   useEffect(() => {
@@ -967,25 +969,28 @@ const Waiter: React.FC = () => {
                 </div>
 
                 {item.available_modifiers.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {item.available_modifiers.map((mod) => {
-                      const removed = item.removed_modifiers.includes(mod);
-                      return (
-                        <button
-                          key={mod}
-                          type="button"
-                          onClick={() => toggleModifier(item.product_id, mod)}
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all ${
-                            removed
-                              ? 'border-destructive/40 bg-destructive/10 text-destructive line-through'
-                              : 'border-border bg-muted text-muted-foreground hover:border-foreground/30 hover:text-foreground'
-                          }`}
-                        >
-                          {mod}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <div className="border-t border-dashed border-border/60 -mx-1 my-1" />
+                )}
+                {item.available_modifiers.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setModifiersDialogItem(item.product_id)}
+                    className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+                      item.removed_modifiers.length > 0
+                        ? 'border-amber-300 bg-amber-50 text-amber-900 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700'
+                        : 'border-border bg-muted/40 text-muted-foreground hover:border-foreground/30 hover:text-foreground'
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
+                      {item.removed_modifiers.length === 0 ? (
+                        <span>התאמה אישית</span>
+                      ) : (
+                        <span className="truncate">ללא: {item.removed_modifiers.join(', ')}</span>
+                      )}
+                    </span>
+                    <span className="text-[10px] opacity-60 shrink-0">›</span>
+                  </button>
                 )}
 
                 <div className="flex items-center justify-between">
@@ -1369,6 +1374,87 @@ const Waiter: React.FC = () => {
               {t('waiter.confirmPayment')}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modifiers Dialog (centered) */}
+      <Dialog open={modifiersDialogItem !== null} onOpenChange={(o) => { if (!o) setModifiersDialogItem(null); }}>
+        <DialogContent className="max-w-sm rounded-2xl p-0 overflow-hidden">
+          {(() => {
+            const item = cart.find((c) => c.product_id === modifiersDialogItem);
+            if (!item) return null;
+            const removedCount = item.removed_modifiers.length;
+            return (
+              <>
+                <div className="bg-gradient-to-br from-primary/15 via-primary/5 to-transparent px-5 pt-5 pb-3">
+                  <div className="flex items-center gap-2 text-[11px] font-bold text-primary/70 uppercase tracking-widest mb-1">
+                    <SlidersHorizontal className="w-3 h-3" />
+                    התאמה אישית
+                  </div>
+                  <DialogTitle className="text-xl font-black text-foreground leading-tight">
+                    {item.name}
+                  </DialogTitle>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {removedCount === 0
+                      ? 'לחץ על מרכיב להסרתו מהמנה'
+                      : `${removedCount} מרכיב${removedCount === 1 ? '' : 'ים'} יוסרו`}
+                  </p>
+                </div>
+                <div className="px-5 py-4 space-y-2.5 max-h-[55vh] overflow-y-auto">
+                  <div className="grid grid-cols-2 gap-2">
+                    {item.available_modifiers.map((mod) => {
+                      const removed = item.removed_modifiers.includes(mod);
+                      return (
+                        <button
+                          key={mod}
+                          type="button"
+                          onClick={() => toggleModifier(item.product_id, mod)}
+                          className={`relative flex items-center justify-between gap-2 px-3 py-3 rounded-xl border-2 text-sm font-bold transition-all active:scale-[0.97] ${
+                            removed
+                              ? 'border-destructive/40 bg-destructive/10 text-destructive'
+                              : 'border-emerald-300 bg-emerald-50 text-emerald-900 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-700'
+                          }`}
+                        >
+                          <span className={`flex-1 text-right ${removed ? 'line-through opacity-70' : ''}`}>
+                            {mod}
+                          </span>
+                          <span className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
+                            removed ? 'bg-destructive/20' : 'bg-emerald-500/15'
+                          }`}>
+                            {removed
+                              ? <X className="w-3 h-3" />
+                              : <Check className="w-3 h-3" />}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="px-5 pb-5 pt-1 flex gap-2 border-t border-border/40 bg-muted/30">
+                  {removedCount > 0 && (
+                    <Button
+                      variant="outline"
+                      className="flex-1 h-11 rounded-xl font-semibold"
+                      onClick={() => {
+                        setCart((prev) => prev.map((c) =>
+                          c.product_id === item.product_id ? { ...c, removed_modifiers: [] } : c
+                        ));
+                      }}
+                    >
+                      איפוס
+                    </Button>
+                  )}
+                  <Button
+                    className="flex-1 h-11 rounded-xl font-bold gap-2"
+                    onClick={() => setModifiersDialogItem(null)}
+                  >
+                    <Check className="w-4 h-4" />
+                    אישור
+                  </Button>
+                </div>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 
