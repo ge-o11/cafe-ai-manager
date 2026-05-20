@@ -167,6 +167,13 @@ const Waiter: React.FC = () => {
     return true;
   }), [menuItems, selectedCategory, searchQuery]);
 
+  const groupedByCategory = useMemo(() => {
+    if (!categories || !filteredItems) return [];
+    return categories
+      .filter(c => c.is_active && filteredItems.some(i => i.category_id === c.id))
+      .map(c => ({ category: c, items: filteredItems.filter(i => i.category_id === c.id) }));
+  }, [categories, filteredItems]);
+
   const addToCart = useCallback((item: NonNullable<typeof menuItems>[number]) => {
     setCart((prev) => {
       const existing = prev.find((c) => c.product_id === item.id);
@@ -909,125 +916,186 @@ const Waiter: React.FC = () => {
               )}
             </div>
 
-            {/* Category Tabs */}
-            {!searchQuery && (
-              <div className="flex gap-1.5 mt-3 overflow-x-auto pb-1 scrollbar-hide">
-                <button
-                  className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
-                    selectedCategory === null
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground hover:bg-secondary'
-                  }`}
-                  onClick={() => setSelectedCategory(null)}
-                >
-                  {t('waiter.all')}
-                </button>
-                {categories?.filter((c) => c.is_active).map((cat) => (
-                  <button
-                    key={cat.id}
-                    className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
-                      selectedCategory === cat.id
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground hover:bg-secondary'
-                    }`}
-                    onClick={() => setSelectedCategory(cat.id)}
-                  >
-                    {getName(cat)}
-                  </button>
-                ))}
-              </div>
-            )}
           </header>
 
-          {/* Product Grid */}
-          <ScrollArea className="flex-1">
-            <div className="p-3">
+          {/* Category sidebar + Product Grid */}
+          <div className="flex-1 flex overflow-hidden">
+
+            {/* Vertical Category Sidebar */}
+            {!searchQuery && (
+              <nav className="w-[78px] shrink-0 border-l border-border bg-card overflow-y-auto flex flex-col py-1.5 gap-1 px-1">
+                <button
+                  onClick={() => setSelectedCategory(null)}
+                  className={`flex flex-col items-center justify-center py-3 rounded-xl transition-all duration-150 ${
+                    selectedCategory === null
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:bg-muted'
+                  }`}
+                >
+                  <span className="text-[11px] font-bold leading-tight">{t('waiter.all')}</span>
+                </button>
+                {categories?.filter(c => c.is_active).map(cat => {
+                  const count = menuItems?.filter(i => i.category_id === cat.id && i.is_active).length ?? 0;
+                  const isActive = selectedCategory === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => setSelectedCategory(cat.id)}
+                      className={`flex flex-col items-center justify-center py-3 rounded-xl transition-all duration-150 gap-0.5 ${
+                        isActive
+                          ? 'bg-primary text-primary-foreground shadow-sm'
+                          : 'text-muted-foreground hover:bg-muted'
+                      }`}
+                    >
+                      <span className="text-[11px] font-bold text-center leading-tight px-1">{getName(cat)}</span>
+                      <span className={`text-[9px] font-semibold ${isActive ? 'opacity-70' : 'opacity-40'}`}>{count}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+            )}
+
+            {/* Items area */}
+            <ScrollArea className="flex-1">
               {(catLoading || itemsLoading) ? (
                 <div className="flex justify-center py-16">
                   <Loader2 className="h-6 w-6 animate-spin text-accent" />
                 </div>
+              ) : (selectedCategory === null && !searchQuery) ? (
+                /* ── Grouped by category ── */
+                <div className="p-3 space-y-5">
+                  {groupedByCategory.length === 0 ? (
+                    <div className="flex flex-col items-center py-16 text-muted-foreground">
+                      <UtensilsCrossed className="w-8 h-8 mb-2 opacity-30" />
+                      <p className="text-sm">{t('waiter.noItemsFound')}</p>
+                    </div>
+                  ) : groupedByCategory.map(({ category, items }) => (
+                    <div key={category.id}>
+                      <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2.5 px-0.5">
+                        {getName(category)}
+                        <span className="ml-2 font-normal opacity-60">({items.length})</span>
+                      </h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2">
+                        {items.map(item => {
+                          const inCart = cart.find(c => c.product_id === item.id);
+                          const description = getDescription(item);
+                          return (
+                            <Card
+                              key={item.id}
+                              className={`overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-md active:scale-[0.97] rounded-xl border ${
+                                inCart ? 'border-accent/50 ring-1 ring-accent/20' : 'border-border'
+                              }`}
+                              onClick={() => addToCart(item)}
+                            >
+                              <CardContent className="p-0">
+                                {item.image_url ? (
+                                  <div className="aspect-[4/3] overflow-hidden relative">
+                                    <img src={item.image_url} alt={getName(item)} className="w-full h-full object-cover" />
+                                    {inCart && (
+                                      <div className="absolute top-1.5 right-1.5">
+                                        <Badge className="h-6 min-w-6 flex items-center justify-center text-xs font-bold bg-accent text-accent-foreground border-0 rounded-full">{inCart.quantity}</Badge>
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="aspect-[4/3] bg-muted flex items-center justify-center relative">
+                                    <UtensilsCrossed className="w-8 h-8 text-muted-foreground/30" />
+                                    {inCart && (
+                                      <div className="absolute top-1.5 right-1.5">
+                                        <Badge className="h-6 min-w-6 flex items-center justify-center text-xs font-bold bg-accent text-accent-foreground border-0 rounded-full">{inCart.quantity}</Badge>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                                <div className="p-2.5">
+                                  <p className="font-medium text-xs text-foreground truncate">{getName(item)}</p>
+                                  {description && <p className="text-[10px] text-muted-foreground truncate mt-0.5 leading-tight">{description}</p>}
+                                  <div className="flex items-center justify-between mt-1.5">
+                                    <span className="text-sm font-bold text-accent">₪{item.price}</span>
+                                    {inCart ? (
+                                      <div className="flex items-center gap-0.5" onClick={e => e.stopPropagation()}>
+                                        <Button size="icon" variant="ghost" className="h-6 w-6 rounded-md" onClick={() => updateQuantity(item.id, -1)}><Minus className="w-3 h-3" /></Button>
+                                        <span className="w-5 text-center text-xs font-bold">{inCart.quantity}</span>
+                                        <Button size="icon" variant="ghost" className="h-6 w-6 rounded-md" onClick={() => updateQuantity(item.id, 1)}><Plus className="w-3 h-3" /></Button>
+                                      </div>
+                                    ) : (
+                                      <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
+                                        <Plus className="w-3.5 h-3.5 text-primary" />
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               ) : filteredItems && filteredItems.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">
-                  {filteredItems.map((item) => {
-                    const inCart = cart.find((c) => c.product_id === item.id);
-                    const description = getDescription(item);
-                    return (
-                      <Card
-                        key={item.id}
-                        className={`overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-md active:scale-[0.97] rounded-xl border ${
-                          inCart ? 'border-accent/50 ring-1 ring-accent/20' : 'border-border'
-                        }`}
-                        onClick={() => addToCart(item)}
-                      >
-                        <CardContent className="p-0">
-                          {item.image_url ? (
-                            <div className="aspect-[4/3] overflow-hidden relative">
-                              <img
-                                src={item.image_url}
-                                alt={getName(item)}
-                                className="w-full h-full object-cover"
-                              />
-                              {inCart && (
-                                <div className="absolute top-1.5 right-1.5">
-                                  <Badge className="h-6 min-w-6 flex items-center justify-center text-xs font-bold bg-accent text-accent-foreground border-0 rounded-full">
-                                    {inCart.quantity}
-                                  </Badge>
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="aspect-[4/3] bg-muted flex items-center justify-center relative">
-                              <UtensilsCrossed className="w-8 h-8 text-muted-foreground/30" />
-                              {inCart && (
-                                <div className="absolute top-1.5 right-1.5">
-                                  <Badge className="h-6 min-w-6 flex items-center justify-center text-xs font-bold bg-accent text-accent-foreground border-0 rounded-full">
-                                    {inCart.quantity}
-                                  </Badge>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          <div className="p-2.5">
-                            <p className="font-medium text-xs text-foreground truncate">{getName(item)}</p>
-                            {description && (
-                              <p className="text-[10px] text-muted-foreground truncate mt-0.5 leading-tight">
-                                {description}
-                              </p>
+                /* ── Single category or search results ── */
+                <div className="p-3">
+                  {searchQuery && (
+                    <p className="text-xs text-muted-foreground mb-3 px-0.5">
+                      {filteredItems.length} תוצאות עבור "{searchQuery}"
+                    </p>
+                  )}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2">
+                    {filteredItems.map(item => {
+                      const inCart = cart.find(c => c.product_id === item.id);
+                      const description = getDescription(item);
+                      return (
+                        <Card
+                          key={item.id}
+                          className={`overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-md active:scale-[0.97] rounded-xl border ${
+                            inCart ? 'border-accent/50 ring-1 ring-accent/20' : 'border-border'
+                          }`}
+                          onClick={() => addToCart(item)}
+                        >
+                          <CardContent className="p-0">
+                            {item.image_url ? (
+                              <div className="aspect-[4/3] overflow-hidden relative">
+                                <img src={item.image_url} alt={getName(item)} className="w-full h-full object-cover" />
+                                {inCart && (
+                                  <div className="absolute top-1.5 right-1.5">
+                                    <Badge className="h-6 min-w-6 flex items-center justify-center text-xs font-bold bg-accent text-accent-foreground border-0 rounded-full">{inCart.quantity}</Badge>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="aspect-[4/3] bg-muted flex items-center justify-center relative">
+                                <UtensilsCrossed className="w-8 h-8 text-muted-foreground/30" />
+                                {inCart && (
+                                  <div className="absolute top-1.5 right-1.5">
+                                    <Badge className="h-6 min-w-6 flex items-center justify-center text-xs font-bold bg-accent text-accent-foreground border-0 rounded-full">{inCart.quantity}</Badge>
+                                  </div>
+                                )}
+                              </div>
                             )}
-                            <div className="flex items-center justify-between mt-1.5">
-                              <span className="text-sm font-bold text-accent">₪{item.price}</span>
-                              {inCart ? (
-                                <div
-                                  className="flex items-center gap-0.5"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <Button
-                                    size="icon" variant="ghost"
-                                    className="h-6 w-6 rounded-md"
-                                    onClick={() => updateQuantity(item.id, -1)}
-                                  >
-                                    <Minus className="w-3 h-3" />
-                                  </Button>
-                                  <span className="w-5 text-center text-xs font-bold">{inCart.quantity}</span>
-                                  <Button
-                                    size="icon" variant="ghost"
-                                    className="h-6 w-6 rounded-md"
-                                    onClick={() => updateQuantity(item.id, 1)}
-                                  >
-                                    <Plus className="w-3 h-3" />
-                                  </Button>
-                                </div>
-                              ) : (
-                                <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
-                                  <Plus className="w-3.5 h-3.5 text-primary" />
-                                </div>
-                              )}
+                            <div className="p-2.5">
+                              <p className="font-medium text-xs text-foreground truncate">{getName(item)}</p>
+                              {description && <p className="text-[10px] text-muted-foreground truncate mt-0.5 leading-tight">{description}</p>}
+                              <div className="flex items-center justify-between mt-1.5">
+                                <span className="text-sm font-bold text-accent">₪{item.price}</span>
+                                {inCart ? (
+                                  <div className="flex items-center gap-0.5" onClick={e => e.stopPropagation()}>
+                                    <Button size="icon" variant="ghost" className="h-6 w-6 rounded-md" onClick={() => updateQuantity(item.id, -1)}><Minus className="w-3 h-3" /></Button>
+                                    <span className="w-5 text-center text-xs font-bold">{inCart.quantity}</span>
+                                    <Button size="icon" variant="ghost" className="h-6 w-6 rounded-md" onClick={() => updateQuantity(item.id, 1)}><Plus className="w-3 h-3" /></Button>
+                                  </div>
+                                ) : (
+                                  <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
+                                    <Plus className="w-3.5 h-3.5 text-primary" />
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-col items-center py-16 text-muted-foreground">
@@ -1035,8 +1103,8 @@ const Waiter: React.FC = () => {
                   <p className="text-sm">{t('waiter.noItemsFound')}</p>
                 </div>
               )}
-            </div>
-          </ScrollArea>
+            </ScrollArea>
+          </div>
 
           {/* Mobile floating cart bar */}
           {totalItems > 0 && (
