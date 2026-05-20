@@ -32,6 +32,8 @@ interface CartItem {
   quantity: number;
   unit_price: number;
   notes: string;
+  available_modifiers: string[];
+  removed_modifiers: string[];
 }
 
 type TableStatus = 'free' | 'new' | 'in_preparation' | 'served';
@@ -96,8 +98,6 @@ const Waiter: React.FC = () => {
   const [sessionNote, setSessionNote] = useState('');
   const [showSessionNote, setShowSessionNote] = useState(false);
   const [now, setNow] = useState(() => new Date());
-  const [editingItem, setEditingItem] = useState<NonNullable<typeof menuItems>[number] | null>(null);
-  const [editQty, setEditQty] = useState(1);
   // Discount state (used in payment dialog)
   const [showDiscountForm, setShowDiscountForm] = useState(false);
   const [discountType, setDiscountType] = useState<DiscountType>('percent');
@@ -198,9 +198,30 @@ const Waiter: React.FC = () => {
       if (existing) {
         return prev.map((c) => c.product_id === item.id ? { ...c, quantity: c.quantity + 1 } : c);
       }
-      return [...prev, { product_id: item.id, name: getName(item), quantity: 1, unit_price: item.price, notes: '' }];
+      return [...prev, {
+        product_id: item.id,
+        name: getName(item),
+        quantity: 1,
+        unit_price: item.price,
+        notes: '',
+        available_modifiers: item.modifiers || [],
+        removed_modifiers: [],
+      }];
     });
   }, [getName]);
+
+  const toggleModifier = useCallback((productId: string, modifier: string) => {
+    setCart((prev) => prev.map((c) => {
+      if (c.product_id !== productId) return c;
+      const isRemoved = c.removed_modifiers.includes(modifier);
+      return {
+        ...c,
+        removed_modifiers: isRemoved
+          ? c.removed_modifiers.filter((m) => m !== modifier)
+          : [...c.removed_modifiers, modifier],
+      };
+    }));
+  }, []);
 
   const updateQuantity = useCallback((productId: string, delta: number) => {
     setCart((prev) =>
@@ -212,38 +233,6 @@ const Waiter: React.FC = () => {
   const updateNotes = useCallback((productId: string, notes: string) => {
     setCart((prev) => prev.map((c) => c.product_id === productId ? { ...c, notes } : c));
   }, []);
-
-  const openItemEditor = useCallback((item: NonNullable<typeof menuItems>[number]) => {
-    const existing = cart.find(c => c.product_id === item.id);
-    setEditQty(existing?.quantity ?? 1);
-    setEditNotes(existing?.notes ?? '');
-    setEditingItem(item);
-  }, [cart]);
-
-  const confirmItemEdit = useCallback(() => {
-    if (!editingItem) return;
-    if (editQty <= 0) {
-      setCart(prev => prev.filter(c => c.product_id !== editingItem.id));
-    } else {
-      setCart(prev => {
-        const existing = prev.find(c => c.product_id === editingItem.id);
-        if (existing) {
-          return prev.map(c => c.product_id === editingItem.id
-            ? { ...c, quantity: editQty, notes: editNotes }
-            : c
-          );
-        }
-        return [...prev, {
-          product_id: editingItem.id,
-          name: getName(editingItem),
-          quantity: editQty,
-          unit_price: editingItem.price,
-          notes: editNotes,
-        }];
-      });
-    }
-    setEditingItem(null);
-  }, [editingItem, editQty, editNotes, getName]);
 
   const totalPrice = useMemo(() => cart.reduce((sum, c) => sum + c.unit_price * c.quantity, 0), [cart]);
   const totalItems = useMemo(() => cart.reduce((sum, c) => sum + c.quantity, 0), [cart]);
@@ -287,14 +276,24 @@ const Waiter: React.FC = () => {
         employee_id: currentEmployee?.id ?? null,
         total_price: totalPrice,
         session_note: sessionNote || null,
-        items: cart.map(({ product_id, quantity, unit_price, notes }) => ({
-          product_id, quantity, unit_price, notes: notes || undefined,
-        })),
+        items: cart.map(({ product_id, quantity, unit_price, notes, removed_modifiers }) => {
+          const modNote = removed_modifiers.length > 0
+            ? removed_modifiers.map((m) => `ללא ${m}`).join(', ')
+            : '';
+          const fullNote = [modNote, notes].filter(Boolean).join(' | ');
+          return { product_id, quantity, unit_price, notes: fullNote || undefined };
+        }),
       });
       if (kitchenWin) {
         writeKitchenTicket(kitchenWin, {
           tableNumber,
-          items: cart.map(({ name, quantity, notes }) => ({ name, quantity, notes: notes || null })),
+          items: cart.map(({ name, quantity, notes, removed_modifiers }) => {
+            const modNote = removed_modifiers.length > 0
+              ? removed_modifiers.map((m) => `ללא ${m}`).join(', ')
+              : '';
+            const fullNote = [modNote, notes].filter(Boolean).join(' | ');
+            return { name, quantity, notes: fullNote || null };
+          }),
           sessionNote: sessionNote || null,
         });
       }
@@ -967,6 +966,28 @@ const Waiter: React.FC = () => {
                   </Button>
                 </div>
 
+                {item.available_modifiers.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {item.available_modifiers.map((mod) => {
+                      const removed = item.removed_modifiers.includes(mod);
+                      return (
+                        <button
+                          key={mod}
+                          type="button"
+                          onClick={() => toggleModifier(item.product_id, mod)}
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all ${
+                            removed
+                              ? 'border-destructive/40 bg-destructive/10 text-destructive line-through'
+                              : 'border-border bg-muted text-muted-foreground hover:border-foreground/30 hover:text-foreground'
+                          }`}
+                        >
+                          {mod}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1 bg-muted rounded-lg p-0.5">
                     <Button
@@ -1194,7 +1215,7 @@ const Waiter: React.FC = () => {
                               return (
                                 <button
                                   key={item.id}
-                                  onClick={() => openItemEditor(item)}
+                                  onClick={() => addToCart(item)}
                                   className={`relative flex flex-col items-start p-2.5 rounded-xl border-2 transition-all duration-150 active:scale-[0.97] text-left w-full ${
                                     inCart
                                       ? 'border-accent bg-accent/10 shadow-sm'
@@ -1225,7 +1246,7 @@ const Waiter: React.FC = () => {
                         return (
                           <button
                             key={item.id}
-                            onClick={() => openItemEditor(item)}
+                            onClick={() => addToCart(item)}
                             className={`relative flex flex-col items-start p-2.5 rounded-xl border-2 transition-all duration-150 active:scale-[0.97] text-left w-full ${
                               inCart
                                 ? 'border-accent bg-accent/10 shadow-sm'
@@ -1350,59 +1371,6 @@ const Waiter: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Item Editor Sheet — opens when tapping a menu tile */}
-      <Sheet open={editingItem !== null} onOpenChange={(open) => { if (!open) setEditingItem(null); }}>
-        <SheetContent side="bottom" className="rounded-t-2xl pb-8">
-          {editingItem && (
-            <div className="flex flex-col gap-5">
-              <SheetHeader className="pb-0">
-                <SheetTitle className="text-xl font-black">{getName(editingItem)}</SheetTitle>
-                <p className="text-2xl font-bold text-accent">₪{editingItem.price}</p>
-              </SheetHeader>
-
-              {/* Quantity stepper */}
-              <div className="flex items-center justify-center gap-6">
-                <button
-                  onClick={() => setEditQty(q => Math.max(0, q - 1))}
-                  className="w-12 h-12 rounded-full border-2 border-border bg-muted flex items-center justify-center hover:bg-destructive/10 hover:border-destructive transition-all"
-                >
-                  <Minus className="w-5 h-5" />
-                </button>
-                <span className="text-4xl font-black tabular-nums w-12 text-center">{editQty}</span>
-                <button
-                  onClick={() => setEditQty(q => q + 1)}
-                  className="w-12 h-12 rounded-full border-2 border-primary bg-primary/10 flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all"
-                >
-                  <Plus className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Notes */}
-              <Textarea
-                placeholder={t('waiter.specialRequests')}
-                value={editNotes}
-                onChange={(e) => setEditNotes(e.target.value)}
-                className="resize-none h-20 bg-muted border-0 text-sm rounded-xl"
-              />
-
-              {/* Confirm / Remove */}
-              <Button
-                className="w-full h-12 text-base font-bold gap-2 rounded-xl"
-                onClick={confirmItemEdit}
-                disabled={editQty === 0 && !cart.find(c => c.product_id === editingItem.id)}
-                variant={editQty === 0 && !!cart.find(c => c.product_id === editingItem.id) ? 'destructive' : 'default'}
-              >
-                {editQty === 0 && cart.find(c => c.product_id === editingItem.id) ? (
-                  <><Trash2 className="w-5 h-5" /> הסר מהזמנה</>
-                ) : (
-                  <><ShoppingCart className="w-5 h-5" /> הוסף להזמנה · ₪{(editingItem.price * editQty).toFixed(2)}</>
-                )}
-              </Button>
-            </div>
-          )}
-        </SheetContent>
-      </Sheet>
 
       {/* Bill Split Sheet */}
       {splitOrders && (

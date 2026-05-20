@@ -47,7 +47,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Loader2, Plus, Pencil, Trash2, Upload } from 'lucide-react';
+import { Loader2, Plus, Pencil, Trash2, Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 const AdminMenuItems: React.FC = () => {
@@ -61,6 +61,7 @@ const AdminMenuItems: React.FC = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [modifiersInput, setModifiersInput] = useState('');
   const [formData, setFormData] = useState({
     category_id: '',
     name_en: '',
@@ -76,9 +77,11 @@ const AdminMenuItems: React.FC = () => {
     image_url: '',
     sort_order: 0,
     is_active: true,
+    modifiers: [] as string[],
   });
 
   const resetForm = () => {
+    setModifiersInput('');
     setFormData({
       category_id: '',
       name_en: '',
@@ -94,6 +97,7 @@ const AdminMenuItems: React.FC = () => {
       image_url: '',
       sort_order: 0,
       is_active: true,
+      modifiers: [],
     });
   };
 
@@ -152,6 +156,7 @@ const AdminMenuItems: React.FC = () => {
 
   const openEdit = (item: MenuItem) => {
     setEditingItem(item);
+    setModifiersInput('');
     setFormData({
       category_id: item.category_id,
       name_en: item.name_en,
@@ -167,6 +172,7 @@ const AdminMenuItems: React.FC = () => {
       image_url: item.image_url || '',
       sort_order: item.sort_order,
       is_active: item.is_active,
+      modifiers: item.modifiers || [],
     });
   };
 
@@ -324,6 +330,62 @@ const AdminMenuItems: React.FC = () => {
           />
           <Label>{t('form.active')}</Label>
         </div>
+      </div>
+
+      {/* Modifiers */}
+      <div className="space-y-2">
+        <Label>מרכיבים להסרה אפשרית</Label>
+        {formData.modifiers.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {formData.modifiers.map((mod, idx) => (
+              <span key={idx} className="inline-flex items-center gap-1 px-2.5 py-1 bg-secondary text-secondary-foreground text-xs rounded-full font-medium">
+                {mod}
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, modifiers: formData.modifiers.filter((_, i) => i !== idx) })}
+                  className="hover:text-destructive transition-colors ml-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="flex gap-2">
+          <Input
+            placeholder="שם מרכיב, לחץ Enter להוספה (כגון: בצל, גבינה)"
+            value={modifiersInput}
+            onChange={(e) => setModifiersInput(e.target.value)}
+            onKeyDown={(e) => {
+              if ((e.key === 'Enter' || e.key === ',') && modifiersInput.trim()) {
+                e.preventDefault();
+                const val = modifiersInput.trim().replace(/,$/, '').trim();
+                if (val && !formData.modifiers.includes(val)) {
+                  setFormData({ ...formData, modifiers: [...formData.modifiers, val] });
+                }
+                setModifiersInput('');
+              }
+            }}
+            dir="rtl"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={() => {
+              const val = modifiersInput.trim();
+              if (val && !formData.modifiers.includes(val)) {
+                setFormData({ ...formData, modifiers: [...formData.modifiers, val] });
+              }
+              setModifiersInput('');
+            }}
+            disabled={!modifiersInput.trim()}
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">מרכיבים שהמלצר יכול לסמן להסרה לפי בקשת הלקוח</p>
       </div>
 
       <div className="space-y-2">

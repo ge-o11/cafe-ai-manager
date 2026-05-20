@@ -29,6 +29,7 @@ export interface MenuItem {
   price: number;
   cost_price: number | null;
   image_url: string | null;
+  modifiers: string[];
   sort_order: number;
   is_active: boolean;
   created_at: string;
