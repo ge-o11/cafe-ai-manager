@@ -9,9 +9,9 @@ import heroCoffee from '@/assets/hero-coffee.jpg';
 import heroBurger from '@/assets/hero-burger.jpg';
 import heroHookah from '@/assets/hero-hookah.jpg';
 import heroFresh from '@/assets/hero-fresh.jpg';
+import cafeNofLogo from '@/assets/cafe-nof-logo-newbg.png';
 
 const localSlides = [heroCoffee, heroBurger, heroHookah, heroFresh];
-import cafeNofLogo from '@/assets/cafe-nof-logo-transparent.png';
 
 const Welcome: React.FC = () => {
   const { language } = useLanguage();
@@ -19,9 +19,10 @@ const Welcome: React.FC = () => {
   const { data: heroImages } = useHeroImages();
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const allSlides = heroImages && heroImages.length > 0
-    ? [...localSlides, ...heroImages.map(img => img.image_url)]
-    : localSlides;
+  const allSlides =
+    heroImages && heroImages.length > 0
+      ? [...localSlides, ...heroImages.map((img) => img.image_url)]
+      : localSlides;
 
   useEffect(() => {
     if (allSlides.length <= 1) return;
@@ -83,29 +84,29 @@ const Welcome: React.FC = () => {
         <LanguageSwitcher />
       </div>
 
-      {/* Main content — left aligned */}
+      {/* Main content */}
       <div className="relative z-10 flex-1 flex flex-col items-start justify-center px-8 sm:px-12 -mt-8">
-        {/* Logo */}
-        <div className="w-20 h-20 sm:w-24 sm:h-24 mb-5 animate-scale-in">
+        {/* Logo — new version, no background, larger */}
+        <div className="mb-5 animate-scale-in" style={{ width: 180 }}>
           <img
             src={cafeNofLogo}
             alt="Cafe Nof Logo"
-            className="w-full h-full object-contain drop-shadow-lg"
-            style={{ mixBlendMode: 'lighten' }}
+            className="w-full object-contain"
+            style={{
+              filter:
+                'drop-shadow(0 4px 24px rgba(200,129,58,0.45)) drop-shadow(0 2px 8px rgba(0,0,0,0.5))',
+            }}
           />
         </div>
-        {/* Title */}
-        <h1
-          className="font-display text-4xl sm:text-5xl md:text-6xl font-bold mb-2 animate-fade-in text-left"
-          style={{ color: 'hsl(var(--cafe-cream))' }}
-        >
-          Cafe Nof
-        </h1>
 
         {/* Subtitle */}
         <p
           className="text-base sm:text-lg font-light tracking-widest uppercase mb-3 animate-slide-up text-left"
-          style={{ color: 'hsl(var(--cafe-caramel))', animationDelay: '0.15s', animationFillMode: 'both' }}
+          style={{
+            color: 'hsl(var(--cafe-caramel))',
+            animationDelay: '0.15s',
+            animationFillMode: 'both',
+          }}
         >
           {t.subtitle}
         </p>
@@ -123,7 +124,7 @@ const Welcome: React.FC = () => {
         </p>
       </div>
 
-      {/* Swipe to explore */}
+      {/* Swipe + contacts */}
       <div
         className="relative z-10 flex flex-col items-center gap-8 pb-8 px-6 animate-slide-up"
         style={{ animationDelay: '0.5s', animationFillMode: 'both' }}
@@ -133,7 +134,6 @@ const Welcome: React.FC = () => {
           onSwipeComplete={() => navigate('/menu')}
         />
 
-        {/* Contact */}
         <div className="flex items-center gap-6">
           <a
             href="https://instagram.com/cafe_nof9"
