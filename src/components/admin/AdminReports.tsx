@@ -289,7 +289,7 @@ const AdminReports: React.FC = () => {
 
   const [period, setPeriod] = useState<Period>('day');
   const [refDate, setRefDate] = useState(() => new Date());
-  const [sortCol, setSortCol] = useState<keyof ProductRow>('revenue');
+  const [sortCol, setSortCol] = useState<keyof ProductRow>('count');
   const [sortDir, setSortDir] = useState<1 | -1>(-1);
 
   // Inject print CSS once

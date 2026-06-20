@@ -10,7 +10,10 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "seed:demo": "node seed-demo-history.mjs",
+    "seed:demo:force": "node seed-demo-history.mjs --force",
+    "seed:demo:dry": "node seed-demo-history.mjs --dry-run"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -51,6 +54,7 @@
     "input-otp": "^1.4.2",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
+    "playwright-core": "^1.61.0",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",

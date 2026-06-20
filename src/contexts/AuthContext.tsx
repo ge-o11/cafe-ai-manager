@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 
@@ -18,8 +18,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  // Prevent parallel calls to checkAdminStatus
+  const checking = useRef(false);
 
   const checkAdminStatus = async (userId: string) => {
+    if (checking.current) return;
+    checking.current = true;
     try {
       const { data, error } = await supabase
         .from('user_roles')
@@ -31,38 +35,43 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (error && error.code !== 'PGRST116') {
         console.error('Error checking admin status:', error);
       }
-      
+
       setIsAdmin(!!data);
     } catch (error) {
       console.error('Error checking admin status:', error);
       setIsAdmin(false);
     }
+    checking.current = false;
   };
 
   useEffect(() => {
-    // Set up auth state listener first
+    // onAuthStateChange must NOT be async — Supabase doesn't await the callback.
+    // We handle SIGNED_IN / SIGNED_OUT events here for live sign-in/out changes
+    // but isLoading is controlled exclusively by the getSession() path below.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          // Use setTimeout to avoid potential race conditions
-          setTimeout(() => checkAdminStatus(session.user.id), 0);
-        } else {
+
+        if (!session?.user) {
           setIsAdmin(false);
+          // For explicit sign-out, clear loading immediately
+          if (event === 'SIGNED_OUT') setIsLoading(false);
+        } else if (event === 'SIGNED_IN') {
+          // After login, re-check admin status without blocking the event
+          checkAdminStatus(session.user.id);
         }
-        setIsLoading(false);
+        // INITIAL_SESSION is handled by getSession() below
       }
     );
 
-    // Then check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Primary initialization: await admin check before setting isLoading = false
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
+
       if (session?.user) {
-        checkAdminStatus(session.user.id);
+        await checkAdminStatus(session.user.id);
       }
       setIsLoading(false);
     });
