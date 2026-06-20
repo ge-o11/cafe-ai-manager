@@ -283,7 +283,9 @@ const KPICard: React.FC<{
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-const AdminReports: React.FC = () => {
+type AdminReportsSection = 'kpis' | 'chart' | 'payment' | 'category' | 'products';
+
+const AdminReports: React.FC<{ section?: AdminReportsSection }> = ({ section }) => {
   const { language } = useLanguage();
   const { data: categories = [] } = useCategories();
 
@@ -498,6 +500,7 @@ const AdminReports: React.FC = () => {
       ) : (
         <>
           {/* ── KPI Cards ──────────────────────────────────────────────────── */}
+          {(!section || section === 'kpis') && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <KPICard
               title="הכנסה"
@@ -528,9 +531,10 @@ const AdminReports: React.FC = () => {
               icon={<Clock className="w-5 h-5 text-primary" />}
             />
           </div>
+          )}
 
           {/* ── Profitability KPIs (only when cost data exists) ────────────── */}
-          {products.some(p => p.cost > 0) && (() => {
+          {(!section || section === 'kpis') && products.some(p => p.cost > 0) && (() => {
             const totalRevenue = products.reduce((s, p) => s + p.revenue, 0);
             const totalCost    = products.reduce((s, p) => s + p.cost, 0);
             const totalProfit  = totalRevenue - totalCost;
@@ -586,7 +590,7 @@ const AdminReports: React.FC = () => {
           })()}
 
           {/* ── Revenue Chart ───────────────────────────────────────────────── */}
-          <Card className="print:break-inside-avoid print:shadow-none">
+          {(!section || section === 'chart') && <Card className="print:break-inside-avoid print:shadow-none">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2">
                 <BarChart3 className="w-4 h-4 print:hidden" />
@@ -611,10 +615,10 @@ const AdminReports: React.FC = () => {
                 </ComposedChart>
               </ResponsiveContainer>
             </CardContent>
-          </Card>
+          </Card>}
 
           {/* ── Payment Method Breakdown ───────────────────────────────────── */}
-          {(() => {
+          {(!section || section === 'payment') && (() => {
             const paidOrders = currentOrders.filter((o: any) => o.payment_method);
             if (paidOrders.length === 0) return null;
             const byMethod: Record<string, { count: number; revenue: number }> = {};
@@ -656,8 +660,8 @@ const AdminReports: React.FC = () => {
             );
           })()}
 
-          {/* ── Category + Products ─────────────────────────────────────────── */}
-          <div className="grid md:grid-cols-2 gap-6">
+          {/* ── Category + Peak Hours ───────────────────────────────────────── */}
+          {(!section || section === 'category') && <div className="grid md:grid-cols-2 gap-6">
             {/* Category Pie */}
             <Card className="print:break-inside-avoid print:shadow-none">
               <CardHeader className="pb-2">
@@ -721,10 +725,10 @@ const AdminReports: React.FC = () => {
                 </ResponsiveContainer>
               </CardContent>
             </Card>
-          </div>
+          </div>}
 
           {/* ── Product Performance Table ───────────────────────────────────── */}
-          <Card className="print:break-inside-avoid print:shadow-none">
+          {(!section || section === 'products') && <Card className="print:break-inside-avoid print:shadow-none">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm flex items-center gap-2">
@@ -822,7 +826,7 @@ const AdminReports: React.FC = () => {
                 <p className="text-sm text-muted-foreground text-center py-8">אין נתונים לתקופה זו</p>
               )}
             </CardContent>
-          </Card>
+          </Card>}
 
           {/* ── Summary for print footer ────────────────────────────────────── */}
           <div className="hidden print:block mt-10 pt-4" style={{ borderTop: '1px solid #d1d5db' }}>
