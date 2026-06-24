@@ -159,7 +159,12 @@ serve(async (req: Request) => {
       if (!imgRes.ok) {
         const errText = await imgRes.text();
         console.error(`DALL-E error ${imgRes.status}:`, errText);
-        return new Response(JSON.stringify({ error: `Image generation failed: ${imgRes.status}` }), {
+        let dalleMsg = `שגיאה ${imgRes.status}`;
+        try {
+          const errJson = JSON.parse(errText);
+          dalleMsg = errJson?.error?.message || errJson?.error?.code || dalleMsg;
+        } catch {}
+        return new Response(JSON.stringify({ error: dalleMsg }), {
           status: 502,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
