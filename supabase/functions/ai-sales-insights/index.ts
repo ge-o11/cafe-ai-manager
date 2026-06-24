@@ -152,7 +152,7 @@ serve(async (req: Request) => {
           prompt: body.imagePrompt,
           n: 1,
           size: "1024x1024",
-          quality: "standard",
+          quality: "medium",
         }),
       });
       if (!imgRes.ok) {
