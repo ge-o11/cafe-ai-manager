@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
@@ -10,12 +10,14 @@ import AdminHeroImages from '@/components/admin/AdminHeroImages';
 import AdminEmployees from '@/components/admin/AdminEmployees';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Loader2, ArrowRight } from 'lucide-react';
 
 const AdminDashboard: React.FC = () => {
   const { t } = useLanguage();
   const { user, isAdmin, isLoading } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const initialTab = (location.state as { tab?: string } | null)?.tab ?? 'ai';
   const [activeTab, setActiveTab] = useState(initialTab);
 
@@ -36,9 +38,19 @@ const AdminDashboard: React.FC = () => {
       <Header showAdminControls />
 
       <main className="container py-8">
-        <h1 className="font-display text-3xl font-bold text-foreground mb-8">
-          {t('admin.title')}
-        </h1>
+        <div className="flex items-center gap-3 mb-8">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0"
+            onClick={() => navigate('/hub', { state: { view: 'admin' } })}
+          >
+            <ArrowRight className="w-5 h-5" />
+          </Button>
+          <h1 className="font-display text-3xl font-bold text-foreground">
+            {t('admin.title')}
+          </h1>
+        </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-8">

@@ -50,7 +50,10 @@ const Hub: React.FC = () => {
   const location = useLocation();
   const { setCurrentEmployee } = useEmployee();
 
-  const initialView: View = location.state?.view === 'employee' ? 'employee' : 'select';
+  const initialView: View =
+    location.state?.view === 'employee' ? 'employee' :
+    location.state?.view === 'admin'    ? 'admin'    :
+    'select';
   const [view, setView] = useState<View>(initialView);
   const [adminPinOpen, setAdminPinOpen] = useState(false);
   const [empTarget, setEmpTarget] = useState<'/waiter' | '/kitchen' | null>(null);

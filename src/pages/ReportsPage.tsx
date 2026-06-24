@@ -286,7 +286,7 @@ const ReportsPage: React.FC = () => {
       {/* ── Sticky page header ───────────────────────────────────────────────── */}
       <header className="border-b border-border bg-card sticky top-0 z-20 shadow-sm shrink-0">
         <div className="container flex items-center gap-3 h-14">
-          <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate('/hub')}>
+          <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate('/hub', { state: { view: 'admin' } })}>
             <ArrowRight className="w-5 h-5" />
           </Button>
           {/* Mobile: sidebar toggle */}

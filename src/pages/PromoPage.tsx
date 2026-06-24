@@ -27,7 +27,7 @@ const PromoPage: React.FC = () => {
             variant="ghost"
             size="icon"
             className="shrink-0"
-            onClick={() => navigate('/hub')}
+            onClick={() => navigate('/hub', { state: { view: 'admin' } })}
           >
             <ArrowRight className="w-5 h-5" />
           </Button>
