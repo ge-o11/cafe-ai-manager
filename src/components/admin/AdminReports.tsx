@@ -676,9 +676,9 @@ const AdminReports: React.FC<{ section?: AdminReportsSection }> = ({ section }) 
                           data={cats}
                           cx="50%"
                           cy="50%"
-                          outerRadius={75}
+                          outerRadius={80}
                           dataKey="value"
-                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          label={({ percent }) => percent > 0.05 ? `${(percent * 100).toFixed(0)}%` : ''}
                           labelLine={false}
                         >
                           {cats.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
@@ -688,15 +688,21 @@ const AdminReports: React.FC<{ section?: AdminReportsSection }> = ({ section }) 
                     </ResponsiveContainer>
                     {/* Legend */}
                     <div className="mt-3 space-y-1.5">
-                      {cats.map((c, i) => (
-                        <div key={i} className="flex items-center justify-between text-xs">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
-                            <span className="text-foreground">{c.name}</span>
+                      {(() => {
+                        const total = cats.reduce((s, c) => s + c.value, 0);
+                        return cats.map((c, i) => (
+                          <div key={i} className="flex items-center justify-between text-xs">
+                            <div className="flex items-center gap-2">
+                              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
+                              <span className="text-foreground">{c.name}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-muted-foreground">{total > 0 ? `${((c.value / total) * 100).toFixed(0)}%` : ''}</span>
+                              <span className="font-semibold text-foreground">₪{c.value.toFixed(0)}</span>
+                            </div>
                           </div>
-                          <span className="font-semibold text-foreground">₪{c.value.toFixed(2)}</span>
-                        </div>
-                      ))}
+                        ));
+                      })()}
                     </div>
                   </>
                 ) : (
