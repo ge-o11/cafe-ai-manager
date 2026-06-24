@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Loader2, ArrowRight, BarChart3,
@@ -151,12 +151,30 @@ function getSection(id: ReportId) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+const SECTION_TO_ID: Record<string, ReportId> = {
+  employees: 'employees',
+  tables:    'tables',
+  ai:        'ai',
+};
+
 const ReportsPage: React.FC = () => {
   const { user, isAdmin, isLoading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  const [activeId, setActiveId] = useState<ReportId>('sales-kpis');
-  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set(['sales']));
+  const getInitialId = (): ReportId => {
+    const s = searchParams.get('section');
+    return (s && SECTION_TO_ID[s]) ? SECTION_TO_ID[s] : 'sales-kpis';
+  };
+
+  const getInitialGroups = (id: ReportId): Set<string> => {
+    const group = REPORT_GROUPS.find(g => g.items.some(i => i.id === id));
+    return new Set(group ? [group.key, 'sales'] : ['sales']);
+  };
+
+  const initialId = getInitialId();
+  const [activeId, setActiveId] = useState<ReportId>(initialId);
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => getInitialGroups(initialId));
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (isLoading) {

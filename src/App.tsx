@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { EmployeeProvider } from "@/contexts/EmployeeContext";
@@ -18,11 +18,8 @@ import Kitchen from "./pages/Kitchen";
 import Hub from "./pages/Hub";
 import ReportsPage from "./pages/ReportsPage";
 import InventoryPage from "./pages/InventoryPage";
-import HistoryPage from "./pages/HistoryPage";
-import AIInsightsPage from "./pages/AIInsightsPage";
 import PromoPage from "./pages/PromoPage";
 import PunchClock from "./pages/PunchClock";
-import EmployeePerformancePage from "./pages/EmployeePerformancePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,12 +45,12 @@ const App = () => (
               <Route path="/kitchen" element={<Kitchen />} />
               <Route path="/reports" element={<ReportsPage />} />
               <Route path="/inventory" element={<InventoryPage />} />
-              <Route path="/history" element={<HistoryPage />} />
-              <Route path="/insights" element={<AIInsightsPage />} />
+              <Route path="/history" element={<Navigate to="/reports?section=tables" replace />} />
+              <Route path="/insights" element={<Navigate to="/reports?section=ai" replace />} />
               <Route path="/promo" element={<PromoPage />} />
               <Route path="/employees" element={<EmployeesPage />} />
               <Route path="/punch" element={<PunchClock />} />
-              <Route path="/performance" element={<EmployeePerformancePage />} />
+              <Route path="/performance" element={<Navigate to="/reports?section=employees" replace />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
