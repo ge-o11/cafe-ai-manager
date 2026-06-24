@@ -1,12 +1,13 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Loader2, Sparkles, TrendingUp,
-  Tag, Gift, ImageIcon, Download, ChevronRight, Upload, CheckCircle2,
+  Tag, Gift, ImageIcon, Download, ChevronRight, Upload, CheckCircle2, Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import ReactMarkdown from 'react-markdown';
@@ -180,6 +181,16 @@ function WeeklyPromoCard({
   uploadingBanner: boolean;
   bannerUploaded: boolean;
 }) {
+  const [editTitle, setEditTitle] = useState(promo.title);
+  const [editDays, setEditDays] = useState(promo.bestDays);
+  const [editDiscount, setEditDiscount] = useState(promo.discount);
+
+  useEffect(() => {
+    setEditTitle(promo.title);
+    setEditDays(promo.bestDays);
+    setEditDiscount(promo.discount);
+  }, [promo.title, promo.bestDays, promo.discount]);
+
   const handleDownload = () => {
     if (!promoImage) return;
     const canvas = document.createElement('canvas');
@@ -200,10 +211,10 @@ function WeeklyPromoCard({
       ctx.direction = 'rtl';
       ctx.fillStyle = 'rgba(255,255,255,0.8)';
       ctx.font = '500 32px Arial';
-      ctx.fillText(promo.bestDays, size - 40, size - 180);
+      ctx.fillText(editDays, size - 40, size - 180);
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 64px Arial';
-      const words = promo.title.split(' ');
+      const words = editTitle.split(' ');
       let line = '';
       let y = size - 120;
       for (const word of words) {
@@ -219,13 +230,13 @@ function WeeklyPromoCard({
       ctx.fillText(line, size - 40, y);
       ctx.fillStyle = '#f59e0b';
       ctx.font = 'bold 44px Arial';
-      const badgeW = ctx.measureText(promo.discount).width + 60;
+      const badgeW = ctx.measureText(editDiscount).width + 60;
       ctx.beginPath();
       ctx.roundRect(40, size - 120, badgeW, 60, 30);
       ctx.fill();
       ctx.fillStyle = '#ffffff';
       ctx.textAlign = 'left';
-      ctx.fillText(promo.discount, 70, size - 75);
+      ctx.fillText(editDiscount, 70, size - 75);
       const link = document.createElement('a');
       link.href = canvas.toDataURL('image/png');
       link.download = 'mivtza-hashavua.png';
@@ -285,13 +296,47 @@ function WeeklyPromoCard({
               <div className="relative rounded-xl overflow-hidden shadow-md">
                 <img src={`data:image/png;base64,${promoImage}`} alt="תמונת מבצע" className="w-full block" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-5 text-right">
-                  <p className="text-white/80 text-sm font-medium mb-1">{promo.bestDays}</p>
-                  <h3 className="text-white text-2xl font-black leading-tight mb-2 drop-shadow-lg">{promo.title}</h3>
+                  <p className="text-white/80 text-sm font-medium mb-1">{editDays}</p>
+                  <h3 className="text-white text-2xl font-black leading-tight mb-2 drop-shadow-lg">{editTitle}</h3>
                   <div className="inline-flex self-end bg-amber-500 text-white font-bold text-lg px-4 py-1.5 rounded-full shadow-lg">
-                    {promo.discount}
+                    {editDiscount}
                   </div>
                 </div>
               </div>
+
+              {/* Editable text fields */}
+              <div className="bg-muted/40 rounded-xl border border-border/60 p-3 space-y-2">
+                <p className="text-xs text-muted-foreground flex items-center gap-1 font-medium">
+                  <Pencil className="w-3 h-3" />
+                  ערוך טקסט על התמונה
+                </p>
+                <div className="space-y-1.5">
+                  <Input
+                    value={editTitle}
+                    onChange={e => setEditTitle(e.target.value)}
+                    placeholder="כותרת המבצע"
+                    className="h-8 text-sm text-right"
+                    dir="rtl"
+                  />
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <Input
+                      value={editDays}
+                      onChange={e => setEditDays(e.target.value)}
+                      placeholder="ימים"
+                      className="h-8 text-sm text-right"
+                      dir="rtl"
+                    />
+                    <Input
+                      value={editDiscount}
+                      onChange={e => setEditDiscount(e.target.value)}
+                      placeholder="הנחה"
+                      className="h-8 text-sm text-right"
+                      dir="rtl"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <Button onClick={handleDownload} className="w-full gap-2 bg-amber-500 hover:bg-amber-600 text-white">
                 <Download className="w-4 h-4" />
                 הורד תמונה לפרסום
