@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import {
   ChevronLeft, ChevronRight, Loader2, Clock,
   ChevronDown, ChevronUp, Pencil, Trash2, Plus,
-  Check, X, AlertTriangle,
+  Check, X, AlertTriangle, Search,
 } from 'lucide-react';
 import {
   useMonthShifts, hoursFromShift, Shift,
@@ -332,6 +332,7 @@ const AdminMonthlyHours: React.FC = () => {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [resetConfirm, setResetConfirm] = useState(false);
+  const [search, setSearch] = useState('');
 
   const { data: shifts = [], isLoading } = useMonthShifts(year, month);
   const { data: employees = [] } = useEmployees();
@@ -374,6 +375,12 @@ const AdminMonthlyHours: React.FC = () => {
       .sort((a, b) => b.totalHours - a.totalHours);
   }, [shifts, employees]);
 
+  const filteredData = useMemo(() =>
+    search.trim()
+      ? employeeData.filter(e => e.name.toLowerCase().includes(search.trim().toLowerCase()))
+      : employeeData,
+    [employeeData, search]);
+
   const totalDays = employeeData.reduce((s, e) => s + e.days, 0);
   const totalHours = employeeData.reduce((s, e) => s + e.totalHours, 0);
   const totalCost = employeeData.reduce((s, e) => s + e.totalCost, 0);
@@ -399,6 +406,25 @@ const AdminMonthlyHours: React.FC = () => {
         </button>
       </div>
 
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="חיפוש עובד לפי שם..."
+          className="w-full pr-9 pl-3 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground"
+          dir="rtl"
+        />
+        {search && (
+          <button onClick={() => setSearch('')}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+
       {/* Summary stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
@@ -420,15 +446,19 @@ const AdminMonthlyHours: React.FC = () => {
           <Loader2 className="h-7 w-7 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground">טוען נתונים...</p>
         </div>
-      ) : employeeData.length === 0 ? (
+      ) : filteredData.length === 0 ? (
         <div className="rounded-2xl border-2 border-dashed border-border py-14 text-center">
           <Clock className="mx-auto mb-3 h-10 w-10 text-muted-foreground/30" />
-          <p className="font-semibold text-foreground">אין נתוני שעות לחודש זה</p>
-          <p className="text-sm text-muted-foreground mt-1">כניסות ויציאות יופיעו כאן</p>
+          <p className="font-semibold text-foreground">
+            {search ? `לא נמצא עובד בשם "${search}"` : 'אין נתוני שעות לחודש זה'}
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {search ? 'נסה שם אחר' : 'כניסות ויציאות יופיעו כאן'}
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
-          {employeeData.map((emp, i) => (
+          {filteredData.map((emp, i) => (
             <EmployeeHoursCard key={emp.id} emp={emp} colorClass={AVATAR_COLORS[i % AVATAR_COLORS.length]} />
           ))}
         </div>

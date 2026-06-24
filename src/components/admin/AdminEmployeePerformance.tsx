@@ -4,10 +4,10 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Users, TrendingUp, ShoppingBag, ReceiptText,
-  ChevronDown, ChevronUp, Loader2, Calendar, Clock, Banknote,
+  ChevronDown, ChevronUp, Loader2, Calendar, Clock, Banknote, AlertTriangle,
 } from 'lucide-react';
-import { useEmployeePerformance, useEmployeeOrders, PeriodFilter } from '@/hooks/useEmployeePerformance';
-import { useAllShifts, useEmployeeShifts, hoursFromShift, Shift } from '@/hooks/useShifts';
+import { useEmployeePerformance, useEmployeeOrders, useDeleteAllOrders, PeriodFilter } from '@/hooks/useEmployeePerformance';
+import { useAllShifts, useEmployeeShifts, hoursFromShift, useDeleteAllShifts, Shift } from '@/hooks/useShifts';
 import { useEmployees } from '@/hooks/useEmployees';
 import { calculateOvertimeCost, formatHours, OvertimeBreakdown } from '@/lib/israeliLaborLaw';
 import AdminMonthlyHours from './AdminMonthlyHours';
@@ -271,6 +271,9 @@ function EmployeeCard({
 const AdminEmployeePerformance: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabId>('performance');
   const [period, setPeriod] = useState<PeriodFilter>('month');
+  const [resetConfirm, setResetConfirm] = useState(false);
+  const deleteAllShifts = useDeleteAllShifts();
+  const deleteAllOrders = useDeleteAllOrders();
   const { data: employees, isLoading } = useEmployeePerformance(period);
   const { data: allShifts = [] } = useAllShifts(period);
   const { data: employeesList = [] } = useEmployees();
@@ -381,6 +384,48 @@ const AdminEmployeePerformance: React.FC = () => {
           <p className="text-sm">אין עובדים רשומים</p>
         </div>
       )}
+
+      {/* Reset zone */}
+      <div className="rounded-2xl border border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-950/10 p-4">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-start gap-2.5">
+            <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+            <div>
+              <p className="font-bold text-sm text-red-800 dark:text-red-400">איפוס כל הנתונים</p>
+              <p className="text-xs text-red-600/80 dark:text-red-500/80 mt-0.5">
+                מוחק את כל המשמרות וכל ההזמנות מהמערכת — פעולה בלתי הפיכה
+              </p>
+            </div>
+          </div>
+          {resetConfirm ? (
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs text-red-700 dark:text-red-400 font-semibold">בטוח?</span>
+              <button
+                onClick={async () => {
+                  await deleteAllShifts.mutateAsync();
+                  await deleteAllOrders.mutateAsync();
+                  setResetConfirm(false);
+                }}
+                disabled={deleteAllShifts.isPending || deleteAllOrders.isPending}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 disabled:opacity-50 transition-colors">
+                {(deleteAllShifts.isPending || deleteAllOrders.isPending)
+                  ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                מחק הכל
+              </button>
+              <button onClick={() => setResetConfirm(false)}
+                className="px-3 py-1.5 bg-muted hover:bg-secondary rounded-xl text-xs font-semibold transition-colors">
+                ביטול
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => setResetConfirm(true)}
+              className="shrink-0 flex items-center gap-2 px-4 py-2 bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-xl text-sm font-semibold hover:bg-red-200 dark:hover:bg-red-900/40 border border-red-200 dark:border-red-800 transition-colors">
+              <AlertTriangle className="w-4 h-4" />
+              אפס הכל
+            </button>
+          )}
+        </div>
+      </div>
       </>}
     </div>
   );

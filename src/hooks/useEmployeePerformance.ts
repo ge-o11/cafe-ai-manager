@@ -1,5 +1,23 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+
+export function useDeleteAllOrders() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { error: itemsErr } = await supabase
+        .from('order_items').delete().not('id', 'is', null);
+      if (itemsErr) throw itemsErr;
+      const { error: ordersErr } = await supabase
+        .from('orders').delete().gte('created_at', '1970-01-01T00:00:00.000Z');
+      if (ordersErr) throw ordersErr;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['employee-performance'] });
+      qc.invalidateQueries({ queryKey: ['employee-orders'] });
+    },
+  });
+}
 
 export interface EmployeeStats {
   id: string;
