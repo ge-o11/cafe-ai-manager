@@ -3,8 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Loader2, Sparkles, TrendingUp,
-  Tag, Gift, ImageIcon, Download, ChevronRight,
+  Tag, Gift, ImageIcon, Download, ChevronRight, Upload, CheckCircle2,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -169,11 +170,15 @@ function RecommendationCard({ rec, index }: { rec: Recommendation; index: number
 
 function WeeklyPromoCard({
   promo, onGenerateImage, generatingImage, promoImage,
+  onUploadBanner, uploadingBanner, bannerUploaded,
 }: {
   promo: WeeklyPromotion;
   onGenerateImage: () => void;
   generatingImage: boolean;
   promoImage: string | null;
+  onUploadBanner: () => void;
+  uploadingBanner: boolean;
+  bannerUploaded: boolean;
 }) {
   const handleDownload = () => {
     if (!promoImage) return;
@@ -291,6 +296,20 @@ function WeeklyPromoCard({
                 <Download className="w-4 h-4" />
                 הורד תמונה לפרסום
               </Button>
+              <Button
+                onClick={onUploadBanner}
+                disabled={uploadingBanner || bannerUploaded}
+                variant="outline"
+                className="w-full gap-2 border-purple-400 dark:border-purple-600 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/30 disabled:opacity-70"
+              >
+                {uploadingBanner ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" />מעלה לכניסה...</>
+                ) : bannerUploaded ? (
+                  <><CheckCircle2 className="w-4 h-4 text-green-500" />פעיל בכניסה לתפריט!</>
+                ) : (
+                  <><Upload className="w-4 h-4" />הצג בכניסה לתפריט</>
+                )}
+              </Button>
             </div>
           ) : (
             <Button
@@ -322,6 +341,8 @@ const AdminAIInsightsPanel: React.FC = () => {
   const [generatingImage, setGeneratingImage] = useState(false);
   const [promoImage, setPromoImage] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [bannerUploaded, setBannerUploaded] = useState(false);
 
   const { now, currentStart, prevStart } = useMemo(() => {
     const now = new Date();
@@ -400,6 +421,7 @@ const AdminAIInsightsPanel: React.FC = () => {
     if (!insights?.weeklyPromotion?.imagePrompt) return;
     setGeneratingImage(true);
     setImageError(null);
+    setBannerUploaded(false);
     try {
       const { data, error } = await supabase.functions.invoke('ai-sales-insights', {
         body: { imagePrompt: insights.weeklyPromotion.imagePrompt },
@@ -414,6 +436,39 @@ const AdminAIInsightsPanel: React.FC = () => {
       setImageError(err instanceof Error ? err.message : 'שגיאה ביצירת תמונה');
     } finally {
       setGeneratingImage(false);
+    }
+  };
+
+  const handleUploadBanner = async () => {
+    if (!promoImage) return;
+    setUploadingBanner(true);
+    try {
+      const res = await fetch(`data:image/png;base64,${promoImage}`);
+      const blob = await res.blob();
+      const filePath = `promo-${crypto.randomUUID()}.png`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('hero-images')
+        .upload(filePath, blob, { contentType: 'image/png' });
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from('hero-images').getPublicUrl(filePath);
+
+      await supabase.from('promo_banners').update({ is_active: false }).eq('is_active', true);
+
+      const { error: insertError } = await supabase.from('promo_banners').insert({
+        image_url: urlData.publicUrl,
+        duration_seconds: 20,
+        is_active: true,
+      });
+      if (insertError) throw insertError;
+
+      setBannerUploaded(true);
+      toast.success('הבאנר פעיל עכשיו בכניסה לתפריט!');
+    } catch {
+      toast.error('שגיאה בהעלאת הבאנר');
+    } finally {
+      setUploadingBanner(false);
     }
   };
 
@@ -536,6 +591,9 @@ const AdminAIInsightsPanel: React.FC = () => {
                 onGenerateImage={handleGenerateImage}
                 generatingImage={generatingImage}
                 promoImage={promoImage}
+                onUploadBanner={handleUploadBanner}
+                uploadingBanner={uploadingBanner}
+                bannerUploaded={bannerUploaded}
               />
               {imageError && <p className="text-xs text-red-500 text-center">{imageError}</p>}
             </section>
