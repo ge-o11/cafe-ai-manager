@@ -347,7 +347,7 @@ const AdminReports: React.FC<{ section?: AdminReportsSection }> = ({ section }) 
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders')
-        .select(`id, total_price, created_at, status,
+        .select(`id, total_price, created_at, status, payment_method,
           order_items (quantity, unit_price, product_id,
             menu_items (name_en, name_he, name_ar, name_ru, category_id, cost_price))`)
         .gte('created_at', s.toISOString())
