@@ -325,14 +325,6 @@ const Hub: React.FC = () => {
                 onClick={() => navigate('/reports')}
               />
               <NavCard
-                icon={<History className="w-6 h-6" />}
-                label="היסטוריית הזמנות"
-                desc="כל ההזמנות לפי שולחן ותאריך"
-                iconBg="bg-slate-100 dark:bg-slate-800"
-                iconColor="text-slate-600 dark:text-slate-400"
-                onClick={() => navigate('/reports?section=tables')}
-              />
-              <NavCard
                 icon={<Sparkles className="w-6 h-6" />}
                 label="המלצות AI"
                 desc="תובנות עסקיות ומבצעים שבועיים"
