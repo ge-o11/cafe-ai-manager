@@ -164,8 +164,9 @@ serve(async (req: Request) => {
           const errJson = JSON.parse(errText);
           dalleMsg = errJson?.error?.message || errJson?.error?.code || dalleMsg;
         } catch {}
-        return new Response(JSON.stringify({ error: dalleMsg }), {
-          status: 502,
+        // Return 200 so the browser can read the error body
+        return new Response(JSON.stringify({ imageBase64: null, error: dalleMsg }), {
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }

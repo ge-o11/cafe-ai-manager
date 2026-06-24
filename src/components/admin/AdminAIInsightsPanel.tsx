@@ -404,11 +404,7 @@ const AdminAIInsightsPanel: React.FC = () => {
       const { data, error } = await supabase.functions.invoke('ai-sales-insights', {
         body: { imagePrompt: insights.weeklyPromotion.imagePrompt },
       });
-      if (error) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const body = await (error as any).context?.json?.().catch(() => null);
-        throw new Error(body?.error || error.message);
-      }
+      if (error) throw error;
       if (data?.imageBase64) {
         setPromoImage(data.imageBase64);
       } else {
