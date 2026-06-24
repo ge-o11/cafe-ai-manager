@@ -153,7 +153,6 @@ serve(async (req: Request) => {
           n: 1,
           size: "1024x1024",
           quality: "standard",
-          response_format: "b64_json",
         }),
       });
       if (!imgRes.ok) {
@@ -164,14 +163,28 @@ serve(async (req: Request) => {
           const errJson = JSON.parse(errText);
           dalleMsg = errJson?.error?.message || errJson?.error?.code || dalleMsg;
         } catch {}
-        // Return 200 so the browser can read the error body
         return new Response(JSON.stringify({ imageBase64: null, error: dalleMsg }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const imgData = await imgRes.json();
-      const b64 = imgData.data?.[0]?.b64_json ?? null;
+      const imageUrl = imgData.data?.[0]?.url;
+      if (!imageUrl) {
+        return new Response(JSON.stringify({ imageBase64: null, error: "לא התקבל URL מ-DALL-E" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // Fetch the URL and convert to base64
+      const imageRes = await fetch(imageUrl);
+      const buffer = await imageRes.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      let binary = "";
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      const b64 = btoa(binary);
       return new Response(JSON.stringify({ imageBase64: b64 }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
