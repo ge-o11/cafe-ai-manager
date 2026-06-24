@@ -325,14 +325,6 @@ const Hub: React.FC = () => {
                 onClick={() => navigate('/reports')}
               />
               <NavCard
-                icon={<TrendingUp className="w-6 h-6" />}
-                label="ביצועי עובדים"
-                desc="מכירות, שעות ועלות עבודה"
-                iconBg="bg-blue-100 dark:bg-blue-900/30"
-                iconColor="text-blue-600 dark:text-blue-400"
-                onClick={() => navigate('/reports?section=employees')}
-              />
-              <NavCard
                 icon={<History className="w-6 h-6" />}
                 label="היסטוריית הזמנות"
                 desc="כל ההזמנות לפי שולחן ותאריך"
