@@ -135,6 +135,54 @@ export function useMonthShifts(year: number, month: number) {
   });
 }
 
+export function useUpdateShift() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, clock_in, clock_out }: { id: string; clock_in: string; clock_out: string | null }) => {
+      const { data, error } = await supabase
+        .from('shifts').update({ clock_in, clock_out }).eq('id', id).select().single();
+      if (error) throw error;
+      return data as Shift;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['shifts'] }),
+  });
+}
+
+export function useDeleteShift() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (shiftId: string) => {
+      const { error } = await supabase.from('shifts').delete().eq('id', shiftId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['shifts'] }),
+  });
+}
+
+export function useCreateShift() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ employee_id, clock_in, clock_out }: { employee_id: string; clock_in: string; clock_out: string | null }) => {
+      const { data, error } = await supabase
+        .from('shifts').insert({ employee_id, clock_in, clock_out }).select().single();
+      if (error) throw error;
+      return data as Shift;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['shifts'] }),
+  });
+}
+
+export function useDeleteAllShifts() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from('shifts').delete().gte('clock_in', '1970-01-01T00:00:00.000Z');
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['shifts'] }),
+  });
+}
+
 export function useClockIn() {
   const qc = useQueryClient();
   return useMutation({
