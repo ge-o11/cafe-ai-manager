@@ -11,7 +11,7 @@ import AdminReports from '@/components/admin/AdminReports';
 import AdminEmployeePerformance from '@/components/admin/AdminEmployeePerformance';
 import AdminTableHistory from '@/components/admin/AdminTableHistory';
 import AdminInventory from '@/components/admin/AdminInventory';
-import AdminAIInsightsPanel from '@/components/admin/AdminAIInsightsPanel';
+
 
 // ─── Report tree definition ───────────────────────────────────────────────────
 
@@ -23,8 +23,7 @@ type ReportId =
   | 'products'
   | 'employees'
   | 'tables'
-  | 'inventory'
-  | 'ai';
+  | 'inventory';
 
 interface ReportItem {
   id: ReportId;
@@ -124,19 +123,6 @@ const REPORT_GROUPS: ReportGroup[] = [
       },
     ],
   },
-  {
-    key: 'ai',
-    label: 'תובנות AI',
-    icon: <Sparkles className="w-4 h-4" />,
-    items: [
-      {
-        id: 'ai',
-        label: 'המלצות AI',
-        icon: <Sparkles className="w-4 h-4" />,
-        description: 'המלצות עסקיות מבוססות נתונים, מבצעים, שעות עומס ורעיונות לשיפור',
-      },
-    ],
-  },
 ];
 
 const ALL_ITEMS: ReportItem[] = REPORT_GROUPS.flatMap(g => g.items);
@@ -154,7 +140,6 @@ function getSection(id: ReportId) {
 const SECTION_TO_ID: Record<string, ReportId> = {
   employees: 'employees',
   tables:    'tables',
-  ai:        'ai',
 };
 
 const ReportsPage: React.FC = () => {
@@ -212,7 +197,6 @@ const ReportsPage: React.FC = () => {
     if (activeId === 'employees')  return <AdminEmployeePerformance />;
     if (activeId === 'tables')     return <AdminTableHistory />;
     if (activeId === 'inventory')  return <AdminInventory />;
-    if (activeId === 'ai')         return <AdminAIInsightsPanel />;
     return null;
   };
 

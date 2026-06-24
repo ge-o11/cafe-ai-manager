@@ -19,6 +19,7 @@ import Hub from "./pages/Hub";
 import ReportsPage from "./pages/ReportsPage";
 import InventoryPage from "./pages/InventoryPage";
 import PromoPage from "./pages/PromoPage";
+import AIInsightsPage from "./pages/AIInsightsPage";
 import PunchClock from "./pages/PunchClock";
 import NotFound from "./pages/NotFound";
 
@@ -46,7 +47,7 @@ const App = () => (
               <Route path="/reports" element={<ReportsPage />} />
               <Route path="/inventory" element={<InventoryPage />} />
               <Route path="/history" element={<Navigate to="/reports?section=tables" replace />} />
-              <Route path="/insights" element={<Navigate to="/reports?section=ai" replace />} />
+              <Route path="/insights" element={<AIInsightsPage />} />
               <Route path="/promo" element={<PromoPage />} />
               <Route path="/employees" element={<EmployeesPage />} />
               <Route path="/punch" element={<PunchClock />} />
