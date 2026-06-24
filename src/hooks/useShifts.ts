@@ -114,6 +114,27 @@ export function useActiveShifts() {
   });
 }
 
+/** All completed shifts for all employees in a specific calendar month */
+export function useMonthShifts(year: number, month: number) {
+  return useQuery<Shift[]>({
+    queryKey: ['shifts', 'month', year, month],
+    queryFn: async () => {
+      const start = new Date(year, month - 1, 1).toISOString();
+      const end = new Date(year, month, 1).toISOString();
+      const { data, error } = await supabase
+        .from('shifts')
+        .select('*')
+        .not('clock_out', 'is', null)
+        .gte('clock_in', start)
+        .lt('clock_in', end)
+        .order('clock_in', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as Shift[];
+    },
+    staleTime: 60_000,
+  });
+}
+
 export function useClockIn() {
   const qc = useQueryClient();
   return useMutation({

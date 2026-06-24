@@ -10,6 +10,9 @@ import { useEmployeePerformance, useEmployeeOrders, PeriodFilter } from '@/hooks
 import { useAllShifts, useEmployeeShifts, hoursFromShift, Shift } from '@/hooks/useShifts';
 import { useEmployees } from '@/hooks/useEmployees';
 import { calculateOvertimeCost, formatHours, OvertimeBreakdown } from '@/lib/israeliLaborLaw';
+import AdminMonthlyHours from './AdminMonthlyHours';
+
+type TabId = 'performance' | 'hours';
 
 const PERIODS: { value: PeriodFilter; label: string }[] = [
   { value: 'today', label: 'היום' },
@@ -266,6 +269,7 @@ function EmployeeCard({
 }
 
 const AdminEmployeePerformance: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<TabId>('performance');
   const [period, setPeriod] = useState<PeriodFilter>('month');
   const { data: employees, isLoading } = useEmployeePerformance(period);
   const { data: allShifts = [] } = useAllShifts(period);
@@ -290,6 +294,29 @@ const AdminEmployeePerformance: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Tab switcher */}
+      <div className="flex gap-1 bg-muted p-1 rounded-xl w-fit" dir="rtl">
+        <button
+          onClick={() => setActiveTab('performance')}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+            activeTab === 'performance' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          ביצועים
+        </button>
+        <button
+          onClick={() => setActiveTab('hours')}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+            activeTab === 'hours' ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          שעות עובדים
+        </button>
+      </div>
+
+      {activeTab === 'hours' && <AdminMonthlyHours />}
+
+      {activeTab === 'performance' && <>
       {/* Period filter */}
       <div className="flex items-center gap-2">
         <Calendar className="w-4 h-4 text-muted-foreground" />
@@ -354,6 +381,7 @@ const AdminEmployeePerformance: React.FC = () => {
           <p className="text-sm">אין עובדים רשומים</p>
         </div>
       )}
+      </>}
     </div>
   );
 };
