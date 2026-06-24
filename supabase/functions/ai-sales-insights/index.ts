@@ -148,7 +148,7 @@ serve(async (req: Request) => {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
         body: JSON.stringify({
-          model: "dall-e-3",
+          model: "gpt-image-1",
           prompt: body.imagePrompt,
           n: 1,
           size: "1024x1024",
@@ -157,26 +157,33 @@ serve(async (req: Request) => {
       });
       if (!imgRes.ok) {
         const errText = await imgRes.text();
-        console.error(`DALL-E error ${imgRes.status}:`, errText);
-        let dalleMsg = `שגיאה ${imgRes.status}`;
+        console.error(`Image gen error ${imgRes.status}:`, errText);
+        let errMsg = `שגיאה ${imgRes.status}`;
         try {
           const errJson = JSON.parse(errText);
-          dalleMsg = errJson?.error?.message || errJson?.error?.code || dalleMsg;
+          errMsg = errJson?.error?.message || errJson?.error?.code || errMsg;
         } catch {}
-        return new Response(JSON.stringify({ imageBase64: null, error: dalleMsg }), {
+        return new Response(JSON.stringify({ imageBase64: null, error: errMsg }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const imgData = await imgRes.json();
+      // gpt-image-1 returns b64_json directly; older models may return url
+      const b64Direct = imgData.data?.[0]?.b64_json;
+      if (b64Direct) {
+        return new Response(JSON.stringify({ imageBase64: b64Direct }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const imageUrl = imgData.data?.[0]?.url;
       if (!imageUrl) {
-        return new Response(JSON.stringify({ imageBase64: null, error: "לא התקבל URL מ-DALL-E" }), {
+        return new Response(JSON.stringify({ imageBase64: null, error: "לא התקבלה תמונה מה-API" }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      // Fetch the URL and convert to base64
+      // Fetch URL and convert to base64
       const imageRes = await fetch(imageUrl);
       const buffer = await imageRes.arrayBuffer();
       const bytes = new Uint8Array(buffer);
