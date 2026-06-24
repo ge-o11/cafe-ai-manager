@@ -113,16 +113,16 @@ ${cats || "אין נתונים"}
     }
   ],
   "weeklyPromotion": {
-    "title": "שם המבצע",
-    "description": "תיאור המבצע ב-2 משפטים",
-    "discount": "פרטי ההנחה לדוגמה: 20% הנחה",
-    "targetItems": ["פריט 1", "פריט 2"],
-    "bestDays": "הימים המומלצים להפעלת המבצע",
-    "imagePrompt": "Professional food photography for an Israeli cafe. Close-up appetizing top-down shot of [list exactly the targetItems foods by their visual appearance, e.g. 'a juicy burger with fries', 'a breakfast plate with eggs and toast']. Beautifully arranged on a rustic wooden table, warm natural lighting, shallow depth of field, vibrant food colors. NO text, NO logos, NO social media UI, NO decorations. Clean minimal background. Square format, photorealistic."
+    "title": "שם המבצע — חייב להכיל שם מוצר אמיתי מהנתונים",
+    "description": "2 משפטים בלבד. חייב לציין את שמות המוצרים הספציפיים מהנתונים ואת ההנחה. אין להמציא אירועים, חוויות, פעילויות או כל דבר שאינו מוצר/שירות של בית הקפה.",
+    "discount": "פרטי ההנחה המדויקים, לדוגמה: 20% הנחה על הום פריז",
+    "targetItems": ["שם מוצר אמיתי מהנתונים", "שם מוצר אמיתי מהנתונים"],
+    "bestDays": "הימים המומלצים להפעלת המבצע לפי הנתונים",
+    "imagePrompt": "Professional food photography for an Israeli cafe. Close-up appetizing top-down shot of [describe exactly the targetItems by visual appearance, e.g. 'a golden french fries and burger', 'a coffee cup and pastry']. Beautifully arranged on a rustic wooden table, warm natural lighting, shallow depth of field, vibrant food colors. NO text, NO logos, NO people, NO decorations. Clean minimal background. Square format, photorealistic."
   }
 }
 
-צור 5-6 המלצות. המבצע השבועי יהיה מבצע שפוגע ישירות בנקודת החולשה שגילית בנתונים (למשל יום שקט, שעה חלשה, מוצר שצריך דחיפה).`;
+צור 5-6 המלצות. המבצע השבועי יהיה מבצע על מוצרים ספציפיים שמופיעים ברשימת המוצרים שסופקה, ויפגע בנקודת החולשה שגילית בנתונים. כל הכתיבה חייבת להיות על אוכל ומשקאות בלבד.`;
 }
 
 // ─── Main handler ─────────────────────────────────────────────────────────────
@@ -228,7 +228,7 @@ serve(async (req: Request) => {
         messages: [
           {
             role: "system",
-            content: "אתה יועץ עסקי מומחה לבתי קפה. נתח נתוני מכירות וספק המלצות קונקרטיות ומבצע שבועי. החזר תמיד JSON בלבד לפי הסכמה שתקבל.",
+            content: "אתה יועץ עסקי מומחה לבתי קפה. נתח נתוני מכירות וספק המלצות קונקרטיות ומבצע שבועי. החזר תמיד JSON בלבד לפי הסכמה שתקבל. חשוב מאוד: כל המלצה ומבצע חייבים להתבסס אך ורק על הנתונים שסופקו — המוצרים, הקטגוריות, הימים והשעות שמופיעים בנתונים. אסור בתכלית האיסור להמציא אירועים, פעילויות, חוויות או כל דבר שאינו קשור ישירות למוצרי בית הקפה ולנתוני המכירות. המבצע חייב לכלול שמות מוצרים אמיתיים מהרשימה.",
           },
           {
             role: "user",
