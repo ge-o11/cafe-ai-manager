@@ -8,7 +8,7 @@ import ShiftStatusChip from '@/components/ShiftStatusChip';
 import { useCategories, useMenuItems } from '@/hooks/useMenu';
 import { useCreateOrder, useActiveOrders, useUpdateOrderStatus, useTransferTable, OrderWithItems, PaymentMethod, DiscountType } from '@/hooks/useOrders';
 import { useTableStatuses, useSetTableCleaning } from '@/hooks/useTables';
-import BillSplitSheet from '@/components/waiter/BillSplitSheet';
+
 import { useSettings, useUpdateSetting } from '@/hooks/useSettings';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,7 +21,7 @@ import {
   Loader2, Search, Plus, Minus, Trash2, ShoppingCart, Send, X,
   UtensilsCrossed, Clock, StickyNote, ChevronLeft, LogOut, Settings,
   ClipboardList, CheckCircle2, Banknote, CreditCard, Smartphone, MoreHorizontal, Printer,
-  ArrowRightLeft, Scissors, Percent, Tag, Sparkles, SlidersHorizontal, Check,
+  ArrowRightLeft, Percent, Tag, Sparkles, SlidersHorizontal, Check,
 } from 'lucide-react';
 import { printReceipt, printDraftBon } from '@/lib/printReceipt';
 import { toast } from 'sonner';
@@ -106,9 +106,7 @@ const Waiter: React.FC = () => {
   const [discountApprovedBy, setDiscountApprovedBy] = useState('');
   // Table transfer state
   const [transferFromTable, setTransferFromTable] = useState<number | null>(null);
-  // Bill split state
-  const [splitOrders, setSplitOrders] = useState<OrderWithItems[] | null>(null);
-  const [splitTableNumber, setSplitTableNumber] = useState<number | null>(null);
+
   // Modifier picker dialog (centered)
   const [modifiersDialogItem, setModifiersDialogItem] = useState<string | null>(null);
   const [editNotes, setEditNotes] = useState('');
@@ -608,7 +606,6 @@ const Waiter: React.FC = () => {
                 onEnterOrdering={() => enterTable(previewTable)}
                 onRequestPayment={openPaymentDialog}
                 onRequestTransfer={(from) => { setTransferFromTable(from); setPreviewTable(null); }}
-                onRequestSplit={(ords) => { setSplitOrders(ords); setSplitTableNumber(previewTable); setPreviewTable(null); }}
                 isPending={updateOrderStatus.isPending}
                 getName={getName}
                 getStatusLabel={getStatusLabel}
@@ -1444,17 +1441,6 @@ const Waiter: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Bill Split Sheet */}
-      {splitOrders && (
-        <BillSplitSheet
-          open={splitOrders !== null}
-          onClose={() => { const tbl = splitTableNumber; setSplitOrders(null); setSplitTableNumber(null); setPreviewTable(tbl); }}
-          orders={splitOrders}
-          tableNumber={splitTableNumber ?? 0}
-          getName={getName}
-          onRequestPayment={(orderIds, total) => { setSplitOrders(null); setSplitTableNumber(null); openPaymentDialog(orderIds, total); }}
-        />
-      )}
     </>
   );
 };
@@ -1467,7 +1453,6 @@ interface TablePreviewContentProps {
   onEnterOrdering: () => void;
   onRequestPayment: (orderIds: string[], total: number) => void;
   onRequestTransfer: (fromTable: number) => void;
-  onRequestSplit: (orders: OrderWithItems[]) => void;
   isPending: boolean;
   getName: (item: { name_en: string; name_he: string; name_ar: string; name_ru?: string }) => string;
   getStatusLabel: (status: string) => string;
@@ -1476,7 +1461,7 @@ interface TablePreviewContentProps {
 }
 
 const TablePreviewContent: React.FC<TablePreviewContentProps> = ({
-  tableNumber, orders, onEnterOrdering, onRequestPayment, onRequestTransfer, onRequestSplit, isPending, getName, now,
+  tableNumber, orders, onEnterOrdering, onRequestPayment, onRequestTransfer, isPending, getName, now,
 }) => {
   const grandTotal = orders.reduce((sum, o) => sum + o.total_price, 0);
   const allItems = orders.flatMap(o =>
@@ -1612,14 +1597,6 @@ const TablePreviewContent: React.FC<TablePreviewContentProps> = ({
         >
           <ArrowRightLeft className="w-4 h-4" />
           העבר שולחן
-        </Button>
-        <Button
-          variant="outline"
-          className="flex-col h-[56px] gap-1 text-xs font-semibold rounded-xl text-muted-foreground"
-          onClick={() => onRequestSplit(orders)}
-        >
-          <Scissors className="w-4 h-4" />
-          פצל חשבון
         </Button>
       </div>
     </div>
