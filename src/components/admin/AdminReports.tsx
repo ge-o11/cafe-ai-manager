@@ -27,6 +27,26 @@ interface CategorySlice { name: string; value: number }
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const COLORS = ['#f59e0b','#92400e','#059669','#1d4ed8','#7c3aed','#dc2626','#0891b2','#d97706','#65a30d','#be185d'];
+
+const RADIAN = Math.PI / 180;
+function renderPieLabel({ cx, cy, midAngle, outerRadius, percent, name }: any) {
+  if (percent < 0.05) return null;
+  const r = outerRadius + 24;
+  const x = cx + r * Math.cos(-midAngle * RADIAN);
+  const y = cy + r * Math.sin(-midAngle * RADIAN);
+  return (
+    <text
+      x={x} y={y}
+      textAnchor={x > cx ? 'start' : 'end'}
+      dominantBaseline="central"
+      fill="currentColor"
+      fontSize={11}
+      fontWeight={600}
+    >
+      {`${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
+}
 const MONTH_LABELS_HE = ['ינו','פבר','מרץ','אפר','מאי','יונ','יול','אוג','ספט','אוק','נוב','דצמ'];
 const DAY_LABELS_HE   = ["א'","ב'","ג'","ד'","ה'","ו'","ש'"];
 
@@ -670,16 +690,16 @@ const AdminReports: React.FC<{ section?: AdminReportsSection }> = ({ section }) 
               <CardContent>
                 {cats.length > 0 ? (
                   <>
-                    <ResponsiveContainer width="100%" height={200}>
+                    <ResponsiveContainer width="100%" height={230}>
                       <PieChart>
                         <Pie
                           data={cats}
                           cx="50%"
                           cy="50%"
-                          outerRadius={80}
+                          outerRadius={70}
                           dataKey="value"
-                          label={({ percent }) => percent > 0.05 ? `${(percent * 100).toFixed(0)}%` : ''}
-                          labelLine={false}
+                          label={renderPieLabel}
+                          labelLine={{ stroke: '#9ca3af', strokeWidth: 1 }}
                         >
                           {cats.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                         </Pie>
