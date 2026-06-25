@@ -108,6 +108,7 @@ const Waiter: React.FC = () => {
   const [transferFromTable, setTransferFromTable] = useState<number | null>(null);
   // Bill split state
   const [splitOrders, setSplitOrders] = useState<OrderWithItems[] | null>(null);
+  const [splitTableNumber, setSplitTableNumber] = useState<number | null>(null);
   // Modifier picker dialog (centered)
   const [modifiersDialogItem, setModifiersDialogItem] = useState<string | null>(null);
   const [editNotes, setEditNotes] = useState('');
@@ -622,7 +623,7 @@ const Waiter: React.FC = () => {
                 onEnterOrdering={() => enterTable(previewTable)}
                 onRequestPayment={openPaymentDialog}
                 onRequestTransfer={(from) => { setTransferFromTable(from); setPreviewTable(null); }}
-                onRequestSplit={(ords) => { setSplitOrders(ords); setPreviewTable(null); }}
+                onRequestSplit={(ords) => { setSplitOrders(ords); setSplitTableNumber(previewTable); setPreviewTable(null); }}
                 isPending={updateOrderStatus.isPending}
                 getName={getName}
                 getStatusLabel={getStatusLabel}
@@ -1462,10 +1463,11 @@ const Waiter: React.FC = () => {
       {splitOrders && (
         <BillSplitSheet
           open={splitOrders !== null}
-          onClose={() => setSplitOrders(null)}
+          onClose={() => { const tbl = splitTableNumber; setSplitOrders(null); setSplitTableNumber(null); setPreviewTable(tbl); }}
           orders={splitOrders}
-          tableNumber={tableNumber ?? 0}
+          tableNumber={splitTableNumber ?? 0}
           getName={getName}
+          onRequestPayment={(orderIds, total) => { setSplitOrders(null); setSplitTableNumber(null); openPaymentDialog(orderIds, total); }}
         />
       )}
     </>

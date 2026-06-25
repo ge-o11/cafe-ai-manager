@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useInventory, useUpdateInventory, getStockStatus, InventoryItem } from '@/hooks/useInventory';
+import { useInventory, useUpdateInventory, useToggleMenuItemActive, getStockStatus, InventoryItem } from '@/hooks/useInventory';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -42,6 +42,7 @@ const AdminInventory: React.FC = () => {
   const { language } = useLanguage();
   const { data: inventory, isLoading } = useInventory();
   const updateInventory = useUpdateInventory();
+  const toggleMenuItemActive = useToggleMenuItemActive();
 
   const [filter, setFilter] = useState<FilterType>('all');
   const [editing, setEditing] = useState<Record<string, EditState>>({});
@@ -92,9 +93,7 @@ const AdminInventory: React.FC = () => {
     });
   };
 
-  const toggleTracking = (item: InventoryItem) => {
-    updateInventory.mutate({ id: item.id, track_inventory: !item.track_inventory });
-  };
+
 
   if (isLoading) {
     return (
@@ -280,17 +279,20 @@ const AdminInventory: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Toggle tracking */}
+                  {/* Toggle available in menu */}
                   <div className="flex flex-col items-center gap-0.5 shrink-0">
                     <Switch
-                      checked={item.track_inventory}
-                      onCheckedChange={() => toggleTracking(item)}
-                      disabled={updateInventory.isPending}
+                      checked={item.menu_items.is_active}
+                      onCheckedChange={(checked) =>
+                        toggleMenuItemActive.mutate({ menu_item_id: item.menu_item_id, is_active: checked })
+                      }
+                      disabled={toggleMenuItemActive.isPending}
                     />
                     <span className="text-[9px] text-muted-foreground">
-                      {isHe ? 'מעקב' : 'Track'}
+                      {isHe ? 'זמין' : 'Active'}
                     </span>
                   </div>
+
                 </div>
               );
             })}

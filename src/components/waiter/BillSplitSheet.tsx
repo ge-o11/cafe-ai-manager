@@ -11,10 +11,11 @@ interface BillSplitSheetProps {
   orders: OrderWithItems[];
   tableNumber: number;
   getName: (item: { name_en: string; name_he: string; name_ar: string; name_ru?: string }) => string;
+  onRequestPayment: (orderIds: string[], total: number) => void;
 }
 
 const BillSplitSheet: React.FC<BillSplitSheetProps> = ({
-  open, onClose, orders, tableNumber, getName,
+  open, onClose, orders, tableNumber, getName, onRequestPayment,
 }) => {
   const [splitCount, setSplitCount] = useState(2);
 
@@ -85,8 +86,14 @@ const BillSplitSheet: React.FC<BillSplitSheetProps> = ({
           </div>
         </div>
 
-        <Button variant="outline" className="w-full mt-5 h-11 rounded-xl font-semibold" onClick={onClose}>
-          סגור
+        <Button
+          className="w-full mt-5 h-11 rounded-xl font-semibold"
+          onClick={() => onRequestPayment(orders.map(o => o.id), grandTotal)}
+        >
+          גבה תשלום
+        </Button>
+        <Button variant="outline" className="w-full mt-2 h-11 rounded-xl font-semibold" onClick={onClose}>
+          חזור לשולחן
         </Button>
       </SheetContent>
     </Sheet>

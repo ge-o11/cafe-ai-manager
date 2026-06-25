@@ -47,6 +47,26 @@ export const useInventory = () => {
   });
 };
 
+export const useToggleMenuItemActive = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ menu_item_id, is_active }: { menu_item_id: string; is_active: boolean }) => {
+      const { error } = await supabase
+        .from('menu_items')
+        .update({ is_active })
+        .eq('id', menu_item_id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['menu-items'] });
+    },
+    onError: () => {
+      toast.error('שגיאה בעדכון זמינות המנה');
+    },
+  });
+};
+
 export const useUpdateInventory = () => {
   const queryClient = useQueryClient();
   return useMutation({
