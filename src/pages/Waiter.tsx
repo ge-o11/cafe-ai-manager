@@ -23,7 +23,7 @@ import {
   ClipboardList, CheckCircle2, Banknote, CreditCard, Smartphone, MoreHorizontal, Printer,
   ArrowRightLeft, Scissors, Percent, Tag, Sparkles, SlidersHorizontal, Check,
 } from 'lucide-react';
-import { printReceipt, openKitchenWindow, writeKitchenTicket, printDraftBon } from '@/lib/printReceipt';
+import { printReceipt, printDraftBon } from '@/lib/printReceipt';
 import { toast } from 'sonner';
 
 interface CartItem {
@@ -270,8 +270,6 @@ const Waiter: React.FC = () => {
 
   const submitOrder = async () => {
     if (!tableNumber || cart.length === 0 || !user) return;
-    // Open kitchen window NOW (within user-gesture context) before the async call
-    const kitchenWin = openKitchenWindow();
     try {
       await createOrder.mutateAsync({
         table_number: tableNumber,
@@ -287,24 +285,11 @@ const Waiter: React.FC = () => {
           return { product_id, quantity, unit_price, notes: fullNote || undefined };
         }),
       });
-      if (kitchenWin) {
-        writeKitchenTicket(kitchenWin, {
-          tableNumber,
-          items: cart.map(({ name, quantity, notes, removed_modifiers }) => {
-            const modNote = removed_modifiers.length > 0
-              ? removed_modifiers.map((m) => `ללא ${m}`).join(', ')
-              : '';
-            const fullNote = [modNote, notes].filter(Boolean).join(' | ');
-            return { name, quantity, notes: fullNote || null };
-          }),
-          sessionNote: sessionNote || null,
-        });
-      }
       setCart([]);
       sessionStorage.removeItem(cartKey(tableNumber));
       setShowMobileCart(false);
     } catch {
-      kitchenWin?.close();
+      // order failed
     }
   };
 
